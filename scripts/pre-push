@@ -1,0 +1,94 @@
+#!/bin/bash
+# Pre-push hook for security checks
+# Runs Bandit on changed Python files before allowing push
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo ""
+echo "🔍 Running pre-push security checks..."
+echo ""
+
+# Get the remote name and URL
+remote="$1"
+url="$2"
+
+# Get the current branch
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+# Try to get the remote tracking branch
+remote_branch=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+
+# If no remote tracking branch, use origin/main or origin/develop
+if [ -z "$remote_branch" ]; then
+    if git rev-parse --verify origin/main >/dev/null 2>&1; then
+        remote_branch="origin/main"
+    elif git rev-parse --verify origin/develop >/dev/null 2>&1; then
+        remote_branch="origin/develop"
+    else
+        remote_branch="HEAD"
+    fi
+fi
+
+# Get list of changed Python files
+if [ "$remote_branch" = "HEAD" ]; then
+    CHANGED_FILES=$(git ls-files '*.py')
+else
+    CHANGED_FILES=$(git diff --name-only "$remote_branch"...HEAD | grep '\.py$' || true)
+fi
+
+# If no Python files changed, skip check
+if [ -z "$CHANGED_FILES" ]; then
+    echo -e "${GREEN}✅ No Python files changed. Skipping security check.${NC}"
+    echo ""
+    exit 0
+fi
+
+# Count changed files
+FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l)
+echo "Checking $FILE_COUNT changed Python file(s)..."
+echo ""
+
+# Run Bandit on changed files
+# Try with uv first, fall back to python -m bandit if uv is not available
+if command -v uv &> /dev/null; then
+    # uv is available
+    if echo "$CHANGED_FILES" | xargs uv run --no-project bandit -c pyproject.toml 2>&1; then
+        echo ""
+        echo -e "${GREEN}✅ Pre-push security check passed!${NC}"
+        echo ""
+        exit 0
+    else
+        echo ""
+        echo -e "${RED}❌ Security issues found in your changes!${NC}"
+        echo ""
+        echo -e "${YELLOW}Please fix the security issues before pushing.${NC}"
+        echo -e "${YELLOW}Or run 'make security-check' for detailed output.${NC}"
+        echo ""
+        echo -e "${YELLOW}To bypass this check (not recommended): git push --no-verify${NC}"
+        echo ""
+        exit 1
+    fi
+else
+    # Fall back to python -m bandit if uv is not available
+    if echo "$CHANGED_FILES" | xargs python -m bandit -c pyproject.toml 2>&1; then
+        echo ""
+        echo -e "${GREEN}✅ Pre-push security check passed!${NC}"
+        echo ""
+        exit 0
+    else
+        echo ""
+        echo -e "${RED}❌ Security issues found in your changes!${NC}"
+        echo ""
+        echo -e "${YELLOW}Please fix the security issues before pushing.${NC}"
+        echo -e "${YELLOW}Or run 'make security-check' for detailed output.${NC}"
+        echo ""
+        echo -e "${YELLOW}To bypass this check (not recommended): git push --no-verify${NC}"
+        echo ""
+        exit 1
+    fi
+fi
+

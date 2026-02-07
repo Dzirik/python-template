@@ -1,0 +1,103 @@
+new_repo/
+│
+├── .gitignore                           # Git ignore rules
+├── .pylintrc                            # Pylint configuration
+├── LICENSE                              # MIT License
+├── Makefile                             # Build automation
+├── make_config_template.mk              # Makefile configuration template
+├── mypy.ini                             # MyPy type checker configuration
+├── pyproject.toml                       # Python project configuration
+├── README.md                            # Full repository documentation
+├── MINIMAL_REPO_CONTENTS.md             # Documentation of minimal repo
+│
+├── assets/                              # Assets folder
+│   ├── minimal_repo_structure.mmd       # Mermaid diagram of structure
+│   └── minimal_repo_tree.txt            # This file - text tree structure
+│
+├── src/                                 # Source code
+│   ├── __init__.py
+│   │
+│   ├── constants/                       # Constants module
+│   │   ├── __init__.py
+│   │   └── global_constants.py          # Global constants, env vars, colors
+│   │
+│   └── utils/                           # Utilities module
+│       ├── __init__.py
+│       ├── base_config.py               # Base configuration class
+│       ├── config.py                    # Main configuration handler (Singleton)
+│       ├── config_data.py               # Configuration data structures
+│       ├── envs.py                      # Environment variables handler
+│       ├── leap_year.py                 # Sample utility function
+│       ├── logger.py                    # Logger implementation (Singleton)
+│       ├── meta_class.py                # Metaclass for unified monitoring
+│       ├── singleton_meta.py            # Singleton pattern implementation
+│       └── timer.py                     # Timer for execution time measurement
+│
+├── tests/                               # Test files
+│   ├── __init__.py
+│   │
+│   └── tests_utils/                     # Tests for utilities
+│       ├── __init__.py
+│       ├── test_leap_year.py            # Tests for leap_year utility
+│       └── test_meta_class.py           # Tests for meta_class
+│
+├── configurations/                      # Configuration files
+│   ├── logger_file.conf                 # Logger config: file only
+│   ├── logger_file_console.conf         # Logger config: file + console
+│   ├── logger_file_limit.conf           # Logger config: file with size limit
+│   ├── logger_file_limit_console.conf   # Logger config: file limit + console
+│   └── python_repo.conf                 # Python configuration file
+│
+├── logs/                                # Directory for log files (empty)
+│
+└── data/                                # Directory for data files (empty)
+
+
+SUMMARY OF FILES COPIED:
+========================
+
+Core Python Files (11):
+  - src/constants/global_constants.py
+  - src/utils/logger.py
+  - src/utils/config.py
+  - src/utils/config_data.py
+  - src/utils/base_config.py
+  - src/utils/envs.py
+  - src/utils/timer.py
+  - src/utils/singleton_meta.py
+  - src/utils/meta_class.py
+  - src/utils/leap_year.py
+
+Test Files (2):
+  - tests/tests_utils/test_leap_year.py
+  - tests/tests_utils/test_meta_class.py
+
+Configuration Files (5):
+  - configurations/logger_file.conf
+  - configurations/logger_file_console.conf
+  - configurations/logger_file_limit.conf
+  - configurations/logger_file_limit_console.conf
+  - configurations/python_repo.conf
+
+Build & Quality Files (7):
+  - .gitignore
+  - .pylintrc
+  - LICENSE
+  - Makefile
+  - make_config_template.mk
+  - mypy.ini
+  - pyproject.toml
+
+Documentation (2):
+  - README.md
+  - MINIMAL_REPO_CONTENTS.md
+
+Package Structure Files (5):
+  - src/__init__.py
+  - src/constants/__init__.py
+  - src/utils/__init__.py
+  - tests/__init__.py
+  - tests/tests_utils/__init__.py
+
+TOTAL: 32 files + 3 directories (logs, data, assets)
+

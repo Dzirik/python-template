@@ -1,0 +1,65 @@
+graph TB
+    subgraph "new_repo - Minimal Functionality"
+        A[Root Files]
+        B[src/]
+        C[tests/]
+        D[configurations/]
+        E[logs/]
+        F[data/]
+        
+        A --> A1[".gitignore"]
+        A --> A2["LICENSE"]
+        A --> A3["Makefile"]
+        A --> A4["pyproject.toml"]
+        A --> A5["mypy.ini"]
+        A --> A6[".pylintrc"]
+        A --> A7["README.md"]
+        A --> A8["make_config_template.mk"]
+        
+        B --> B1["constants/"]
+        B --> B2["utils/"]
+        
+        B1 --> B1A["global_constants.py"]
+        B1 --> B1B["__init__.py"]
+        
+        B2 --> B2A["logger.py"]
+        B2 --> B2B["config.py"]
+        B2 --> B2C["envs.py"]
+        B2 --> B2D["timer.py"]
+        B2 --> B2E["singleton_meta.py"]
+        B2 --> B2F["config_data.py"]
+        B2 --> B2G["base_config.py"]
+        B2 --> B2H["meta_class.py"]
+        B2 --> B2I["leap_year.py"]
+        B2 --> B2J["__init__.py"]
+        
+        C --> C1["tests_utils/"]
+        C --> C2["__init__.py"]
+        
+        C1 --> C1A["test_leap_year.py"]
+        C1 --> C1B["test_meta_class.py"]
+        C1 --> C1C["__init__.py"]
+        
+        D --> D1["logger_file.conf"]
+        D --> D2["logger_file_console.conf"]
+        D --> D3["logger_file_limit.conf"]
+        D --> D4["logger_file_limit_console.conf"]
+        D --> D5["python_repo.conf"]
+        
+        E --> E1["(empty - for logs)"]
+        F --> F1["(empty - for data)"]
+    end
+    
+    style A fill:#FE5000,stroke:#CC4000,color:#fff
+    style B fill:#123C52,stroke:#09233B,color:#fff
+    style C fill:#65954E,stroke:#4A7039,color:#fff
+    style D fill:#F04A79,stroke:#C50D65,color:#fff
+    style E fill:#F9BC42,stroke:#C79635,color:#000
+    style F fill:#B8EDF7,stroke:#6BB6CB,color:#000
+    
+    style B2A fill:#3E7E97,stroke:#123C52,color:#fff
+    style B2B fill:#3E7E97,stroke:#123C52,color:#fff
+    style B2C fill:#3E7E97,stroke:#123C52,color:#fff
+    style B2D fill:#3E7E97,stroke:#123C52,color:#fff
+    style B2E fill:#3E7E97,stroke:#123C52,color:#fff
+
