@@ -54,7 +54,7 @@ class Logger(metaclass=Singleton):
 
             try:
                 branch_name = str(git.Repo(search_parent_directories=True).active_branch.name)
-            except (git.exc.InvalidGitRepositoryError, git.exc.GitCommandError):
+            except (git.exc.InvalidGitRepositoryError, git.exc.GitCommandError, TypeError):
                 branch_name = "ERROR"
             self._logger.info("Logger was created on %s in branche %s.", platform.node(), branch_name)
 
@@ -98,7 +98,6 @@ class Logger(metaclass=Singleton):
     def end_timer(self) -> None:
         """
         Ends the timer.
-        :param message: str. Log message.
         """
         _, _, duration_s, duration_m = self._timer.get_end("Process ended")
         self._logger.info(
