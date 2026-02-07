@@ -28,7 +28,7 @@ else:
         load_dotenv(_env_example_path)
 
 # Default values (fallback if not in .env)
-_DEFAULT_CONFIG = "python_local"
+_DEFAULT_CONFIG = "python_personal"
 _DEFAULT_LOGGER = "logger_file_limit_console"
 _DEFAULT_RUNNING_UNIT_TESTS = "False"
 
