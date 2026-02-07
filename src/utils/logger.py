@@ -54,7 +54,7 @@ class Logger(metaclass=Singleton):
 
             try:
                 branch_name = str(git.Repo(search_parent_directories=True).active_branch.name)
-            except (git.exc.InvalidGitRepositoryError, git.exc.GitCommandError):
+            except (git.exc.InvalidGitRepositoryError, git.exc.GitCommandError, TypeError):
                 branch_name = "ERROR"
             self._logger.info("Logger was created on %s in branche %s.", platform.node(), branch_name)
 
