@@ -29,22 +29,32 @@ def _get_config_file_path(config_file_name: str) -> str:
     :param config_file_name: Optional[str]. Name of the _profile and the file at the same time. File name without .conf.
     """
     profile_file_name = f"{config_file_name}.conf"
-    # Try relative path from src/utils directory
-    profile_file_path = Path(__file__).parent.parent.parent / FOLDER_CONFIGURATIONS / profile_file_name
 
-    if not profile_file_path.exists():
-        # Try from current working directory
-        profile_file_path = Path.cwd() / FOLDER_CONFIGURATIONS / profile_file_name
+    # Try multiple path resolution strategies
+    paths_to_try = [
+        # 1. Relative path from src/utils directory (3 levels up)
+        Path(__file__).parent.parent.parent / FOLDER_CONFIGURATIONS / profile_file_name,
+        # 2. From current working directory
+        Path.cwd() / FOLDER_CONFIGURATIONS / profile_file_name,
+        # 3. From parent of current working directory (for CI environments)
+        Path.cwd().parent / FOLDER_CONFIGURATIONS / profile_file_name,
+        # 4. Search upward from current file location
+        Path(__file__).resolve().parent.parent.parent / FOLDER_CONFIGURATIONS / profile_file_name,
+    ]
 
-        if not profile_file_path.exists():
-            # Don't call Logger() here to avoid circular dependency
-            error_msg = (
-                f"Config profile does not exist in the selected path. "
-                f"Looking for: {profile_file_name} in {FOLDER_CONFIGURATIONS}/"
-            )
-            raise ValueError(error_msg)
+    for profile_file_path in paths_to_try:
+        if profile_file_path.exists():
+            return str(profile_file_path)
 
-    return str(profile_file_path)
+    # If none found, raise error with diagnostic info
+    error_msg = (
+        f"Config profile does not exist in any searched path. "
+        f"Looking for: {profile_file_name} in {FOLDER_CONFIGURATIONS}/\n"
+        f"Current working directory: {Path.cwd()}\n"
+        f"Script location: {Path(__file__).parent}\n"
+        f"Searched paths:\n" + "\n".join(f"  - {p}" for p in paths_to_try)
+    )
+    raise ValueError(error_msg)
 
 
 class Config(metaclass=Singleton):
