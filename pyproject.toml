@@ -33,13 +33,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    # Development libraries (6)
+    # Development libraries (7)
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "mypy>=1.7.0",
     "ruff>=0.8.0",
     "bandit[toml]>=1.7.0",
     "pip-audit>=2.6.0",
+    "beautifulsoup4>=4.12.0",
 ]
 
 # Windows-specific dependencies
