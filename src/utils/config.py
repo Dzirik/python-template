@@ -73,7 +73,6 @@ class Config(metaclass=Singleton):
             self._data = ConfigFactory.parse_file(_get_config_file_path(self._env.get_config()))
             self._data = typedload.load(self._data, ConfigData)
 
-
             self._is_profile = True
 
     def get_data(self) -> ConfigData:
