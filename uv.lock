@@ -747,8 +747,8 @@ dev = [
     { name = "ruff" },
 ]
 windows = [
-    { name = "pywin32" },
-    { name = "pywinpty" },
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
+    { name = "pywinpty", marker = "sys_platform == 'win32'" },
 ]
 
 [package.metadata]
@@ -763,8 +763,8 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "pywin32", marker = "extra == 'windows'", specifier = ">=311" },
-    { name = "pywinpty", marker = "extra == 'windows'", specifier = ">=3.0.3" },
+    { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'windows'", specifier = ">=311" },
+    { name = "pywinpty", marker = "sys_platform == 'win32' and extra == 'windows'", specifier = ">=3.0.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
     { name = "scikit-learn", specifier = ">=1.3.0" },
     { name = "typedload", specifier = ">=2.28" },
