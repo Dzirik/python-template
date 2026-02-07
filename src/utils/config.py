@@ -19,7 +19,6 @@ from pyhocon import ConfigFactory
 from src.constants.global_constants import FOLDER_CONFIGURATIONS
 from src.utils.config_data import ConfigData
 from src.utils.envs import Envs
-from src.utils.logger import Logger
 from src.utils.singleton_meta import Singleton
 
 
@@ -38,8 +37,12 @@ def _get_config_file_path(config_file_name: str) -> str:
         profile_file_path = Path.cwd() / FOLDER_CONFIGURATIONS / profile_file_name
 
         if not profile_file_path.exists():
-            Logger().error("Logger profile does not exist in the selected path.")
-            raise ValueError("Config profile does not exist in the selected path.")
+            # Don't call Logger() here to avoid circular dependency
+            error_msg = (
+                f"Config profile does not exist in the selected path. "
+                f"Looking for: {profile_file_name} in {FOLDER_CONFIGURATIONS}/"
+            )
+            raise ValueError(error_msg)
 
     return str(profile_file_path)
 
@@ -70,7 +73,6 @@ class Config(metaclass=Singleton):
             self._data = ConfigFactory.parse_file(_get_config_file_path(self._env.get_config()))
             self._data = typedload.load(self._data, ConfigData)
 
-            Logger().debug(f"Python config was created from {self._env.get_config()}.conf file.")
 
             self._is_profile = True
 

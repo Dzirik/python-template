@@ -98,7 +98,6 @@ class Logger(metaclass=Singleton):
     def end_timer(self) -> None:
         """
         Ends the timer.
-        :param message: str. Log message.
         """
         _, _, duration_s, duration_m = self._timer.get_end("Process ended")
         self._logger.info(
