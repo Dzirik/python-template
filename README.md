@@ -25,6 +25,11 @@
     - [Datetime Functions](#datetime-functions)
     - [Exceptions](#exceptions)
     - [Transformers](#transformers)
+- [Jupyter Notebooks](#jupyter-notebooks)
+    - [Jupytext Library](#jupytext-library)
+    - [Jupyter Notebooks Folders](#jupyter-notebooks-folders)
+    - [Jupyter Notebook Template](#jupyter-notebook-template)
+    - [Parameterized Notebooks](#parameterized-notebooks)
 
 <a name="introduction"></a>
 # Introduction
@@ -785,6 +790,9 @@ Common make commands for repository management. Run `make help` for full list.
 - `make all-secure -i` - Run all quality checks + security (same as CI/CD pipeline)
 - `make cover` - Generate coverage report (HTML in `coverage/` folder)
 
+**Jupyter Notebook:**
+- `make jupyter` - Start Jupyter Notebook server (run `make sync-install` first if encountering kernel errors)
+
 **Package Management:**
 - `make add-lib library=<name>` - Add library (e.g., `make add-lib library=pandas`)
 - `make remove-lib library=<name>` - Remove library
@@ -828,7 +836,8 @@ Repository Set Up & Virtual Environment:
 
 Optional Git Hooks:
  - make install-hooks: Installs Git hooks (Windows) - pre-commit: blocks commits to main/develop, pre-push: security checks.
- - make install-hooks-linux: Installs Git hooks (Linux/macOS) - pre-commit: blocks commits to main/develop, pre-push: security checks.
+ - make install-hooks-linux: Installs Git hooks (Linux/macOS) - pre-commit: blocks commits to main/develop, 
+                             pre-push: security checks.
 
 Code Quality:
  - make mypy: MyPy type checking.
@@ -844,57 +853,8 @@ Code Quality:
  - make all: Runs mypy + format-check + lint-check + docstring-check + test.
  - make all-secure: Runs all + security-check (same as CI/CD pipeline).
 
-File-Specific Quality:
- - make mypy-f FILE_CODE=<path> FILE_TEST=<path>: MyPy for specific file.
- - make format-check-f FILE_CODE=<path> FILE_TEST=<path>: Check formatting for specific file.
- - make format-fix-f FILE_CODE=<path> FILE_TEST=<path>: Auto-format specific file.
- - make lint-check-f FILE_CODE=<path> FILE_TEST=<path>: Ruff linting for specific file.
- - make lint-fix-f FILE_CODE=<path> FILE_TEST=<path>: Auto-fix linting issues for specific file.
- - make docstring-check-f FILE_CODE=<path> FILE_TEST=<path>: Check docstrings for specific file.
- - make docstring-fix-f FILE_CODE=<path> FILE_TEST=<path>: Auto-fix docstring issues for specific file.
- - make test-f FILE_FOLDER=<folder> FILE_NAME=<name>: Pytest for specific file (compressed).
- - make test-f-detailed FILE_FOLDER=<folder> FILE_NAME=<name>: Pytest for specific file (detailed).
- - make all-f FILE_FOLDER=<folder> FILE_NAME=<name>: All checks for specific file (mypy + format-check + lint-check + docstring-check + test).
-
-## Make Documentation
-
-### help
-@HELP
-
-Utils:
- - make hello: Prints hello message.
-
-Repository Set Up & Virtual Environment:
- - make create-venv: Sets up repository files AND creates virtual environment named .venv on Windows.
- - .venv\Scripts\activate: Activates virtual environment on Windows.
- - make create-venv-linux: Sets up repository files AND creates virtual environment named .venv on Linux/macOS.
- - make set-up-repo: (Optional) Manually sets up repository files only, without creating virtual environment.
- - source .venv/bin/activate: Activates virtual environment on Linux/macOS.
- - make add-lib library=<library>[==<version>]: Adds a library to the virtual environment.
- - make add-lib-win library=<library>[==<version>]: Adds a windows only library to the virtual environment.
- - make remove-lib library=<library>: Removes a library from the virtual environment.
- - make remove-lib-win library=<library>: Removes a windows only library from the virtual environment.
- - make sync-deps: Syncs dependencies (updates uv.lock from pyproject.toml).
- - make sync-install: Syncs and installs all dependencies from uv.lock.
- - make sync-install-dev: Syncs and installs dev dependencies only.
-
-Optional Git Hooks:
- - make install-hooks: Installs Git hooks (Windows) - pre-commit: blocks commits to main/develop, pre-push: security checks.
- - make install-hooks-linux: Installs Git hooks (Linux/macOS) - pre-commit: blocks commits to main/develop, pre-push: security checks.
-
-Code Quality:
- - make mypy: MyPy type checking.
- - make format-check: Check code formatting without changes.
- - make format-fix: Auto-format code with Ruff.
- - make lint-check: Ruff code quality checking.
- - make lint-fix: Auto-fix linting issues with Ruff.
- - make docstring-check: Check docstrings with Ruff pydocstyle.
- - make docstring-fix: Auto-fix docstring issues with Ruff pydocstyle.
- - make test: Pytest testing (compressed output).
- - make test-detailed: Pytest testing (detailed output showing each test).
- - make security-check: Security checks (bandit + pip-audit).
- - make all: Runs mypy + format-check + lint-check + docstring-check + test.
- - make all-secure: Runs all + security-check (same as CI/CD pipeline).
+Jupyter Notebook:
+ - make jupyter: Starts Jupyter Notebook server.
 
 File-Specific Quality:
  - make mypy-f FILE_CODE=<path> FILE_TEST=<path>: MyPy for specific file.
@@ -906,7 +866,8 @@ File-Specific Quality:
  - make docstring-fix-f FILE_CODE=<path> FILE_TEST=<path>: Auto-fix docstring issues for specific file.
  - make test-f FILE_FOLDER=<folder> FILE_NAME=<name>: Pytest for specific file (compressed).
  - make test-f-detailed FILE_FOLDER=<folder> FILE_NAME=<name>: Pytest for specific file (detailed).
- - make all-f FILE_FOLDER=<folder> FILE_NAME=<name>: All checks for specific file (mypy + format-check + lint-check + docstring-check + test).
+ - make all-f FILE_FOLDER=<folder> FILE_NAME=<name>: All checks for specific file (mypy + format-check + 
+                                                     lint-check + docstring-check + test).
 
 ## Make Documentation
 
@@ -1245,6 +1206,33 @@ Checks both the source file and its corresponding test file.
 Configure FILE_NAME and FILE_FOLDER in make_config.mk before running.
 @
 
+### jupyter
+@STARTS JUPYTER NOTEBOOK SERVER
+Launches Jupyter Notebook server using nbclassic (Python 3.12 compatible).
+The notebook server will automatically open in your default web browser.
+Press Ctrl+C in the terminal to stop the server.
+
+Usage: make jupyter
+
+Features:
+ - Uses nbclassic (maintained notebook 6.x runner for Python 3.12)
+ - Compatible with jupytext .py format notebooks
+ - Opens in default browser automatically
+ - Access notebooks in the notebooks/ folder
+ - Server runs on http://localhost:8888 by default
+
+Technical Details:
+ - Uses 'python -m nbclassic' instead of 'jupyter notebook'
+ - NBClassic provides the same notebook 6.x interface
+ - Fully compatible with Python 3.12 (no 'imp' or 'distutils' errors)
+
+Troubleshooting:
+If you encounter errors, ensure dependencies are up to date:
+ - make sync-install (updates all packages including nbclassic)
+
+See JUPYTER_UPDATE.md for complete details on the Python 3.12 compatibility fix.
+@
+
 ### cover-base
 @GENERATES COVERAGE REPORT
 Creates complete coverage report for the repository.
@@ -1569,3 +1557,155 @@ new_encoded = transformer.predict(new_data)
 - `sklearn.preprocessing.OneHotEncoder` - One-hot encoding
 
 See `tests/tests_transformations/test_datetime_one_hot_transformer.py` for comprehensive usage examples.
+
+
+<a name="jupyter-notebooks"></a>
+# Jupyter Notebooks
+[ToC](#table-of-content)
+
+Jupyter notebooks are the central component of this project, serving as the primary interface for data analysis, visualization, documentation, and experimentation. They follow a **client-server architecture pattern** where:
+- **Client:** Core project code in `src/` (version-controlled, tested, production-ready)
+- **Server:** Notebooks act as execution engines that consume and utilize the core code
+
+Notebooks are designed for exploration and documentation, not for storing critical business logic.
+
+<a name="jupytext-library"></a>
+## Jupytext Library
+[ToC](#table-of-content)
+
+The native Jupyter format (`.ipynb`) contains both code and metadata (execution state, UI settings, etc.), making it difficult to track changes in version control. [Jupytext](https://jupytext.readthedocs.io/) solves this by allowing notebooks to be stored as clean `.py` files while maintaining full `.ipynb` compatibility.
+
+**Benefits:**
+- ✅ Version control friendly (plain Python text files)
+- ✅ Easier code review and collaboration
+- ✅ Reduced merge conflicts
+- ✅ IDE support for notebook editing
+- ✅ Automatic two-way synchronization (.ipynb ↔ .py)
+
+**Setup in a Notebook:**
+
+1. Open the notebook in Jupyter: `make jupyter`
+2. Edit notebook metadata: **Edit → Edit Notebook Metadata**
+3. Replace metadata with:
+```json
+{
+    "jupytext": {"formats": "ipynb,py:light"},
+    "kernelspec": {
+        "name": "python3",
+        "display_name": "Python 3",
+        "language": "python"
+    }
+}
+```
+4. Save the notebook - both `.ipynb` and `.py` files are now created and synchronized
+
+**Repository Setup:**
+- `.ipynb` files are excluded from version control (see `.gitignore`)
+- Only `.py` format files are tracked in Git
+- Jupyter automatically maintains both formats when saving
+
+<a name="jupyter-notebooks-folders"></a>
+## Jupyter Notebooks Folder Structure
+[ToC](#table-of-content)
+
+The `notebooks/` folder is organized by workflow stage:
+
+**notebooks/template/** - Template notebooks (setup with Jupytext):
+- `template_notebook_empty.py` - Minimal notebook with Jupytext configuration
+- `template_notebook_repo.py` - Repository template with basic functionality
+- `template_notebook_final.py` - **Recommended** - Full-featured template with all tools configured (Config, Logger, Envs)
+- `template_parameterized_execution_notebook.py` - Template for automated parameterized runs (see [Parameterized Notebooks](#parameterized-notebooks))
+
+**notebooks/documentation/** - Functionality documentation notebooks:
+- Jupyter notebooks documenting specific features and modules
+- Exported `.html` versions available in `/docs/` for offline reference
+- Automatically updated when documentation is changed
+
+**notebooks/raw/** - Preparation and exploration code:
+- Data cleaning, initial exploration, prototyping
+- Raw data processing before final analysis
+- Short-lived analysis notebooks
+
+**notebooks/final/** - Production-ready notebooks:
+- **Main deliverables** - Final analysis, reports, and findings
+- Fully documented and tested
+- Used for presentations and stakeholder communication
+
+**notebooks/temporal/** - Temporary work (excluded from version control):
+- Experimental notebooks (not synced to Git)
+- Testing and rapid prototyping
+- Safe space for iteration without affecting repository
+
+<a name="jupyter-notebook-template"></a>
+## Jupyter Notebook Template Structure
+[ToC](#table-of-content)
+
+The recommended template (`notebooks/template/template_notebook_final.py`) provides a standardized structure with integrated project tools:
+
+**1. Notebook Description**
+- Overview of the notebook's purpose and expected outputs
+- Key objectives and methodology
+
+**2. General Settings**
+- All imports and constants
+- Logger, Config, and environment setup
+- Configurations for reproducibility
+
+**3. Analysis**
+- Main code execution section
+- Critical business logic imported from `src/` (not defined in notebook)
+- Visualizations and results
+
+**4. Final Timestamp & Summary**
+- Execution time and date
+- Summary of findings and outputs
+- Links to generated artifacts
+
+**Integrated Tools:**
+- **Config:** Access configuration from `configurations/`
+- **Logger:** Automatic logging of analysis steps
+- **Envs:** Environment variable management
+- **Timer:** Track analysis execution time
+
+**Version History:**
+- v1.1 - Fixed notebook creation for automated runs
+
+<a name="parameterized-notebooks"></a>
+## Parameterized Notebook Execution
+[ToC](#table-of-content)
+
+For scenarios requiring running a single notebook with multiple parameter sets, use [Papermill](https://github.com/nteract/papermill) for automated parameterized execution.
+
+**Files:**
+- **Executor:** `src/utils/notebooks_executioner.py` - Runs parameterized notebooks
+- **Example:** `notebooks/template/template_parameterized_execution_notebook.py` - Template with parameter setup guide
+
+**Usage:**
+
+1. Mark parameter cells in your notebook with a `parameters` tag
+2. Create parameter sets in the executor or config file
+3. Run the executor to generate multiple notebook outputs with different parameters
+
+**Example Parameter Cell:**
+```python
+# Cell tagged as "parameters"
+learning_rate = 0.01
+batch_size = 32
+epochs = 100
+```
+
+**Running from Script:**
+```bash
+make jupyter  # Start interactive Jupyter
+# OR
+python src/scripts/param_notebook_execution.py  # Run batch automation
+```
+
+**Features:**
+- Batch execution with different parameter sets
+- Automatic output naming with parameter values
+- HTML export option for each parameterized run
+- Configuration-driven parameter management
+
+See `notebooks/template/template_parameterized_execution_notebook.py` for detailed setup and usage examples.
+
