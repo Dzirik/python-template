@@ -25,6 +25,11 @@
     - [Datetime Functions](#datetime-functions)
     - [Exceptions](#exceptions)
     - [Transformers](#transformers)
+- [Jupyter Notebooks](#jupyter-notebooks)
+    - [Jupytext Library](#jupytext-library)
+    - [Jupyter Notebooks Folders](#jupyter-notebooks-folders)
+    - [Jupyter Notebook Template](#jupyter-notebook-template)
+    - [Parameterized Notebooks](#parameterized-notebooks)
 
 <a name="introduction"></a>
 # Introduction
@@ -785,6 +790,9 @@ Common make commands for repository management. Run `make help` for full list.
 - `make all-secure -i` - Run all quality checks + security (same as CI/CD pipeline)
 - `make cover` - Generate coverage report (HTML in `coverage/` folder)
 
+**Jupyter Notebook:**
+- `make jupyter` - Start Jupyter Notebook server (run `make sync-install` first if encountering kernel errors)
+
 **Package Management:**
 - `make add-lib library=<name>` - Add library (e.g., `make add-lib library=pandas`)
 - `make remove-lib library=<name>` - Remove library
@@ -844,6 +852,9 @@ Code Quality:
  - make all: Runs mypy + format-check + lint-check + docstring-check + test.
  - make all-secure: Runs all + security-check (same as CI/CD pipeline).
 
+Jupyter Notebook:
+ - make jupyter: Starts Jupyter Notebook server.
+
 File-Specific Quality:
  - make mypy-f FILE_CODE=<path> FILE_TEST=<path>: MyPy for specific file.
  - make format-check-f FILE_CODE=<path> FILE_TEST=<path>: Check formatting for specific file.
@@ -895,6 +906,9 @@ Code Quality:
  - make security-check: Security checks (bandit + pip-audit).
  - make all: Runs mypy + format-check + lint-check + docstring-check + test.
  - make all-secure: Runs all + security-check (same as CI/CD pipeline).
+
+Jupyter Notebook:
+ - make jupyter: Starts Jupyter Notebook server.
 
 File-Specific Quality:
  - make mypy-f FILE_CODE=<path> FILE_TEST=<path>: MyPy for specific file.
@@ -1245,6 +1259,33 @@ Checks both the source file and its corresponding test file.
 Configure FILE_NAME and FILE_FOLDER in make_config.mk before running.
 @
 
+### jupyter
+@STARTS JUPYTER NOTEBOOK SERVER
+Launches Jupyter Notebook server using nbclassic (Python 3.12 compatible).
+The notebook server will automatically open in your default web browser.
+Press Ctrl+C in the terminal to stop the server.
+
+Usage: make jupyter
+
+Features:
+ - Uses nbclassic (maintained notebook 6.x runner for Python 3.12)
+ - Compatible with jupytext .py format notebooks
+ - Opens in default browser automatically
+ - Access notebooks in the notebooks/ folder
+ - Server runs on http://localhost:8888 by default
+
+Technical Details:
+ - Uses 'python -m nbclassic' instead of 'jupyter notebook'
+ - NBClassic provides the same notebook 6.x interface
+ - Fully compatible with Python 3.12 (no 'imp' or 'distutils' errors)
+
+Troubleshooting:
+If you encounter errors, ensure dependencies are up to date:
+ - make sync-install (updates all packages including nbclassic)
+
+See JUPYTER_UPDATE.md for complete details on the Python 3.12 compatibility fix.
+@
+
 ### cover-base
 @GENERATES COVERAGE REPORT
 Creates complete coverage report for the repository.
@@ -1569,3 +1610,4 @@ new_encoded = transformer.predict(new_data)
 - `sklearn.preprocessing.OneHotEncoder` - One-hot encoding
 
 See `tests/tests_transformations/test_datetime_one_hot_transformer.py` for comprehensive usage examples.
+

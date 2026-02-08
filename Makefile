@@ -62,6 +62,7 @@ create-venv: clear-console
 	@cp ./configurations/python_repo.conf ./configurations/python_personal.conf 2>/dev/null || echo "python_personal.conf already exists"
 	@python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"')) if p.exists() else None"
 	@cp .env.example .env 2>/dev/null || echo ".env already exists"
+	@test -f notebooks/raw/playground_notebook.py || cp notebooks/template/template_notebook_final.py notebooks/raw/playground_notebook.py
 	@echo "Repository setup completed!"
 	@echo ""
 	@echo "Creating virtual environment with Python 3.12..."
@@ -80,6 +81,7 @@ create-venv-linux: clear-console
 	@cp ./configurations/python_repo.conf ./configurations/python_personal.conf 2>/dev/null || echo "python_personal.conf already exists"
 	@python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"')) if p.exists() else None"
 	@cp .env.example .env 2>/dev/null || echo ".env already exists"
+	@test -f notebooks/raw/playground_notebook.py || cp notebooks/template/template_notebook_final.py notebooks/raw/playground_notebook.py
 	@echo "Repository setup completed!"
 	@echo ""
 	@echo "Creating virtual environment with Python 3.12..."
@@ -368,6 +370,16 @@ else
 endif
 
 all-f: mypy-f format-check-f lint-check-f docstring-check-f test-f
+
+# JUPYTER NOTEBOOK -----------------------------------------------------------------------------------------------------
+
+jupyter: clear-console
+	@uv run --no-project python ./src/utils/make_print_documentation.py jupyter
+	@echo "Starting Jupyter Notebook..."
+	@echo "The notebook server will open in your default browser"
+	@echo "Press Ctrl+C to stop the server"
+	@echo ""
+	@uv run --no-project python -m nbclassic
 
 # COVERAGE -------------------------------------------------------------------------------------------------------------
 

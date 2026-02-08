@@ -21,7 +21,6 @@ classifiers = [
 ]
 
 dependencies = [
-    # Runtime libraries (7)
     "python-dotenv>=1.0.0",
     "gitpython>=3.1.40",
     "pyhocon>=0.3.60",
@@ -29,11 +28,43 @@ dependencies = [
     "pandas>=2.1.4",
     "numpy>=1.24.0",
     "scikit-learn>=1.3.0",
+    # Jupyter packages - Python 3.12 compatible, notebook 6.x for jupytext
+    "jupyter>=1.0.0",
+    "jupyter-client>=7.0.0",
+    "jupyter-console>=6.6.0",
+    "jupyter-core>=5.0.0",
+    "jupyter_server>=1.24.0,<2.0.0",  # notebook 6.5.x requires <2
+    "notebook==6.5.7",
+    "nbclassic>=1.0.0",  # Maintained shim for notebook 6.x with Python 3.12 support
+    "nbclient>=0.7.0",
+    "nbconvert>=7.0.0",
+    "nbformat>=5.7.0",
+    "jupytext>=1.14.0",
+    "papermill>=2.4.0",
+    "jupyterlab-pygments>=0.2.0",
+    "ipykernel==6.29.5",
+    "ipython>=8.12.0",
+    "ipywidgets>=8.0.0",
+    "traitlets>=5.9.0",
+    "qtconsole>=5.4.0",
+    "qtpy>=2.3.0",
+    "pandocfilters>=1.5.0",
+    "mistune>=2.0.0",
+    "pygments>=2.15.0",
+    "pyzmq>=25.0.0",
+    "tornado>=6.2",
+    "terminado>=0.17.0",
+    "send2trash>=1.8.0",
+    "nest-asyncio>=1.5.6",
+    "prompt-toolkit>=3.0.36",
+    "decorator>=5.1.1",
+    "jedi>=0.18.2",
+    "parso>=0.8.3",
+    "debugpy>=1.6.6",
 ]
 
 [project.optional-dependencies]
 dev = [
-    # Development libraries (7)
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "mypy>=1.7.0",
