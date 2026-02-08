@@ -3,6 +3,7 @@ Code for automatically execution of notebooks based on parameters.
 
 NOTE: Joblib could be used instead of multiprocessing.
 """
+
 import subprocess  # nosec: B404 - used only with hardcoded safe commands
 import sys
 from datetime import datetime
@@ -75,7 +76,8 @@ class NotebookExecutioner:
         if not self._config.get_data().param_ntb_execution.use_default:
             self._params = self._params._replace(notebook_path=self._config.get_data().param_ntb_execution.ntb_path)
             self._params = self._params._replace(
-                output_folder=self._config.get_data().param_ntb_execution.output_folder)
+                output_folder=self._config.get_data().param_ntb_execution.output_folder
+            )
             self._params = self._params._replace(
                 list_of_ntb_params=self._config.get_data().param_ntb_execution.notebook_executioner_params
             )
@@ -86,9 +88,7 @@ class NotebookExecutioner:
 
         :param list_of_ntb_params: List[Any].
         """
-        self._params = self._params._replace(
-            list_of_ntb_params=list_of_ntb_params
-        )
+        self._params = self._params._replace(list_of_ntb_params=list_of_ntb_params)
 
     def _ensure_ipynb_from_py(self) -> None:
         """
@@ -122,12 +122,18 @@ class NotebookExecutioner:
             datetime_id = create_datetime_id(now=datetime.now(), add_micro=False)
             exec_params["ID"] = datetime_id
             if self._params.keep_name_static:
-                path_out = str((Path(self._params.output_folder) /
-                    f"{self._params.notebook_name}_{Path(__file__).stem}.ipynb").resolve())
+                path_out = str(
+                    (
+                        Path(self._params.output_folder) / f"{self._params.notebook_name}_{Path(__file__).stem}.ipynb"
+                    ).resolve()
+                )
             else:
                 name = self._params.notebook_name
-                name = (f"{self._params.file_name}" if name == ""
-                        else f"{name}_{self._params.file_name}") if self._params.add_file_name_to_notebook_name else name
+                name = (
+                    (f"{self._params.file_name}" if name == "" else f"{name}_{self._params.file_name}")
+                    if self._params.add_file_name_to_notebook_name
+                    else name
+                )
                 if self._params.add_datetime_id:
                     name = f"{datetime_id}_{name}"
                 if self._params.add_params_to_name:
@@ -169,11 +175,12 @@ class NotebookExecutioner:
                 shuffle(list_of_ntb_params)
             if len(list_of_ntb_params) < number_of_processes:
                 number_of_processes = len(list_of_ntb_params)
-                print(f" - updating number of processes to: {number_of_processes} "
-                      f"for length: {len(list_of_ntb_params)}")
+                print(
+                    f" - updating number of processes to: {number_of_processes} for length: {len(list_of_ntb_params)}"
+                )
             batch_size = len(list_of_ntb_params) // number_of_processes
             params_batches = [
-                list_of_ntb_params[i:i + batch_size] for i in range(0, len(list_of_ntb_params), batch_size)
+                list_of_ntb_params[i : i + batch_size] for i in range(0, len(list_of_ntb_params), batch_size)
             ]
 
             with Pool(number_of_processes) as notebook_pool:
@@ -181,7 +188,8 @@ class NotebookExecutioner:
                 notebook_pool.close()
                 notebook_pool.join()
         else:
-            raise IncorrectValue(f"The value of number_of_processes {number_of_processes}has to be integer bigger or "
-                                 f"equal to 1.")
+            raise IncorrectValue(
+                f"The value of number_of_processes {number_of_processes}has to be integer bigger or equal to 1."
+            )
 
         self._timer.end(label=f"End of Notebook Executioner for {len(list_of_ntb_params)} parameters")

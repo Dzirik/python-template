@@ -8,6 +8,7 @@ Key differences vs notebooks_executioner.NotebookExecutioner:
 
 Inherits from NotebookExecutioner and overrides only the execute() method.
 """
+
 from __future__ import annotations
 
 import subprocess  # nosec: B404 - used only with hardcoded safe commands
@@ -52,8 +53,11 @@ class NotebookExecutionerLinux(NotebookExecutioner):
             return str((Path(base["output_folder"]) / f"{name}.ipynb").resolve())
 
         name = base["notebook_name"]
-        name = (f"{base['file_name']}" if name == ""
-                else f"{name}_{base['file_name']}") if base["add_file_name_to_notebook_name"] else name
+        name = (
+            (f"{base['file_name']}" if name == "" else f"{name}_{base['file_name']}")
+            if base["add_file_name_to_notebook_name"]
+            else name
+        )
         if base["add_datetime_id"]:
             name = f"{datetime_id}_{name}"
         if base["add_params_to_name"]:
@@ -131,9 +135,7 @@ class NotebookExecutionerLinux(NotebookExecutioner):
             with ctx.Pool(number_of_processes) as pool:
                 # Use imap_unordered for better load balancing with varying notebook runtimes
                 for _ in pool.imap_unordered(
-                        self._worker_execute_one,
-                        [(base, p) for p in list_of_ntb_params],
-                        chunksize=1
+                    self._worker_execute_one, [(base, p) for p in list_of_ntb_params], chunksize=1
                 ):
                     pass
                 pool.close()
