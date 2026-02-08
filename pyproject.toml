@@ -1,5 +1,5 @@
 [project]
-name = "python-minimal-template"
+name = "python-template"
 version = "1.0.0"
 description = "Minimal Python repository template with logger, config, exceptions, transformers, and testing infrastructure"
 readme = "README.md"

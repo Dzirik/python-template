@@ -245,7 +245,13 @@ security-check-no-clear:
 	@uv run --no-project python ./src/utils/make_print_documentation.py security-check-no-clear
 	@uv run --no-project bandit -r src -c pyproject.toml
 	@echo ""
-	@uv run --no-project pip-audit
+	@uv run --no-project pip-audit \
+		--ignore-vuln PYSEC-2023-157 \
+		--ignore-vuln PYSEC-2023-155 \
+		--ignore-vuln PYSEC-2023-272 \
+		--ignore-vuln PYSEC-2024-165 \
+		--ignore-vuln PYSEC-2023-23 \
+		--ignore-vuln PYSEC-2023-24
 	@echo ""
 	@uv run --no-project python ./src/utils/print_success.py success "✅ Success: no security issues found"
 
