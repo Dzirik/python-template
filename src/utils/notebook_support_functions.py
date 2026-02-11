@@ -9,7 +9,7 @@ from re import search
 from ipykernel.connect import get_connection_file
 from IPython.display import HTML
 from notebook.notebookapp import list_running_servers
-from requests import get  # type: ignore[import-untyped]
+from requests import get
 
 
 def get_notebook_name() -> str:
