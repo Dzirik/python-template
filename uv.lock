@@ -1868,7 +1868,7 @@ wheels = [
 ]
 
 [[package]]
-name = "python-minimal-template"
+name = "python-template"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
@@ -1911,6 +1911,7 @@ dependencies = [
     { name = "tornado" },
     { name = "traitlets" },
     { name = "typedload" },
+    { name = "types-requests" },
 ]
 
 [package.optional-dependencies]
@@ -1978,6 +1979,7 @@ requires-dist = [
     { name = "tornado", specifier = ">=6.2" },
     { name = "traitlets", specifier = ">=5.9.0" },
     { name = "typedload", specifier = ">=2.28" },
+    { name = "types-requests" },
 ]
 provides-extras = ["dev", "windows"]
 
@@ -2484,6 +2486,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/58/70/fec3f45d83fe5cff2e03c2f1b4ae1d4e0b9c14f046e57a9e0320439b0971/typedload-2.39.tar.gz", hash = "sha256:bbeb448f4d8f11236bd9471adb53a1c4113a7e235626521dcebc558e3920bb46", size = 79106, upload-time = "2025-10-21T07:07:47.285Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/b3/b21f88a867f81fc98faf7bbc4a67e4be0bc335f5c88a0451c8bf586c6f67/typedload-2.39-py3-none-any.whl", hash = "sha256:8e4a58a2e00e519b50fc9ac75ab8e6a2c1e5826835ac4ebfe661a909bfa79068", size = 56313, upload-time = "2025-10-21T07:07:45.796Z" },
+]
+
+[[package]]
+name = "types-requests"
+version = "2.32.4.20260107"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/f3/a0663907082280664d745929205a89d41dffb29e89a50f753af7d57d0a96/types_requests-2.32.4.20260107.tar.gz", hash = "sha256:018a11ac158f801bfa84857ddec1650750e393df8a004a8a9ae2a9bec6fcb24f", size = 23165, upload-time = "2026-01-07T03:20:54.091Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/12/709ea261f2bf91ef0a26a9eed20f2623227a8ed85610c1e54c5805692ecb/types_requests-2.32.4.20260107-py3-none-any.whl", hash = "sha256:b703fe72f8ce5b31ef031264fe9395cac8f46a04661a79f7ed31a80fb308730d", size = 20676, upload-time = "2026-01-07T03:20:52.929Z" },
 ]
 
 [[package]]
