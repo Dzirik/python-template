@@ -28,23 +28,6 @@ clear-console:
 
 # ENVIRONMENT ----------------------------------------------------------------------------------------------------------
 
-set-up-repo: clear-console
-	@python ./src/utils/make_print_documentation.py set-up-repo
-	@echo "Setting up repository ..."
-	@echo "Copying configuration files..."
-	cp make_config_template.mk make_config.mk
-	cp ./configurations/python_repo.conf ./configurations/python_personal.conf
-	@echo "Creating .env file from template..."
-	@cp .env.example .env 2>/dev/null || echo ".env already exists"
-	@echo "Repository setup completed successfully!"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  1. Create virtual environment by:"
-	@echo "     - Running 'make create-venv' on windows."
-	@echo "     - Running 'make create-venv-linux' on Linux/macOS."
-	@echo "  2. Run 'make all -i' to test the repository."
-	@echo ""
-
 install-hooks: clear-console
 	@python ./src/utils/make_print_documentation.py install-hooks
 	@echo "Installing Git pre-push hooks..."
@@ -58,10 +41,14 @@ install-hooks-linux: clear-console
 create-venv: clear-console
 	@python ./src/utils/make_print_documentation.py create-venv
 	@echo "Setting up repository files..."
-	@cp make_config_template.mk make_config.mk 2>/dev/null || echo "make_config.mk already exists"
-	@cp ./configurations/python_repo.conf ./configurations/python_personal.conf 2>/dev/null || echo "python_personal.conf already exists"
-	@python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"')) if p.exists() else None"
-	@cp .env.example .env 2>/dev/null || echo ".env already exists"
+	@test -f make_config.mk && echo "make_config.mk already exists" || cp make_config_template.mk make_config.mk
+	@if [ ! -f ./configurations/python_personal.conf ]; then \
+		cp ./configurations/python_repo.conf ./configurations/python_personal.conf; \
+		python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"'))"; \
+	else \
+		echo "python_personal.conf already exists"; \
+	fi
+	@test -f .env && echo ".env already exists" || cp .env.example .env
 	@test -f notebooks/raw/playground_notebook.py || cp notebooks/template/template_notebook_final.py notebooks/raw/playground_notebook.py
 	@echo "Repository setup completed!"
 	@echo ""
@@ -77,10 +64,14 @@ create-venv: clear-console
 create-venv-linux: clear-console
 	@python ./src/utils/make_print_documentation.py create-venv-linux
 	@echo "Setting up repository files..."
-	@cp make_config_template.mk make_config.mk 2>/dev/null || echo "make_config.mk already exists"
-	@cp ./configurations/python_repo.conf ./configurations/python_personal.conf 2>/dev/null || echo "python_personal.conf already exists"
-	@python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"')) if p.exists() else None"
-	@cp .env.example .env 2>/dev/null || echo ".env already exists"
+	@test -f make_config.mk && echo "make_config.mk already exists" || cp make_config_template.mk make_config.mk
+	@if [ ! -f ./configurations/python_personal.conf ]; then \
+		cp ./configurations/python_repo.conf ./configurations/python_personal.conf; \
+		python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"'))"; \
+	else \
+		echo "python_personal.conf already exists"; \
+	fi
+	@test -f .env && echo ".env already exists" || cp .env.example .env
 	@test -f notebooks/raw/playground_notebook.py || cp notebooks/template/template_notebook_final.py notebooks/raw/playground_notebook.py
 	@echo "Repository setup completed!"
 	@echo ""

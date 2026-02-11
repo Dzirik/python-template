@@ -1,0 +1,3 @@
+﻿N,ATTR_NAME_TUPLE_ALIAS,ATTR_NAME,ATTR_TYPE,NOTE,GROUP_01
+1,datetime,DATETIME,datetime64[ns],,1
+2,attr_name_1,ATTR_NAME_1,str,,

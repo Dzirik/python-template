@@ -538,6 +538,15 @@ wheels = [
 ]
 
 [[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/38/af70d7ab1ae9d4da450eeec1fa3918940a5fafb9055e934af8d6eb0c2313/et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54", size = 17234, upload-time = "2024-10-25T17:25:40.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa", size = 18059, upload-time = "2024-10-25T17:25:39.051Z" },
+]
+
+[[package]]
 name = "executing"
 version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1421,6 +1430,18 @@ wheels = [
 ]
 
 [[package]]
+name = "openpyxl"
+version = "3.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "et-xmlfile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
+]
+
+[[package]]
 name = "packageurl-python"
 version = "0.17.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1868,7 +1889,7 @@ wheels = [
 ]
 
 [[package]]
-name = "python-minimal-template"
+name = "python-template"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
@@ -1894,6 +1915,7 @@ dependencies = [
     { name = "nest-asyncio" },
     { name = "notebook" },
     { name = "numpy" },
+    { name = "openpyxl" },
     { name = "pandas" },
     { name = "pandocfilters" },
     { name = "papermill" },
@@ -1911,6 +1933,7 @@ dependencies = [
     { name = "tornado" },
     { name = "traitlets" },
     { name = "typedload" },
+    { name = "types-requests" },
 ]
 
 [package.optional-dependencies]
@@ -1955,6 +1978,7 @@ requires-dist = [
     { name = "nest-asyncio", specifier = ">=1.5.6" },
     { name = "notebook", specifier = "==6.5.7" },
     { name = "numpy", specifier = ">=1.24.0" },
+    { name = "openpyxl" },
     { name = "pandas", specifier = ">=2.1.4" },
     { name = "pandocfilters", specifier = ">=1.5.0" },
     { name = "papermill", specifier = ">=2.4.0" },
@@ -1978,6 +2002,7 @@ requires-dist = [
     { name = "tornado", specifier = ">=6.2" },
     { name = "traitlets", specifier = ">=5.9.0" },
     { name = "typedload", specifier = ">=2.28" },
+    { name = "types-requests" },
 ]
 provides-extras = ["dev", "windows"]
 
@@ -2484,6 +2509,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/58/70/fec3f45d83fe5cff2e03c2f1b4ae1d4e0b9c14f046e57a9e0320439b0971/typedload-2.39.tar.gz", hash = "sha256:bbeb448f4d8f11236bd9471adb53a1c4113a7e235626521dcebc558e3920bb46", size = 79106, upload-time = "2025-10-21T07:07:47.285Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/b3/b21f88a867f81fc98faf7bbc4a67e4be0bc335f5c88a0451c8bf586c6f67/typedload-2.39-py3-none-any.whl", hash = "sha256:8e4a58a2e00e519b50fc9ac75ab8e6a2c1e5826835ac4ebfe661a909bfa79068", size = 56313, upload-time = "2025-10-21T07:07:45.796Z" },
+]
+
+[[package]]
+name = "types-requests"
+version = "2.32.4.20260107"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/f3/a0663907082280664d745929205a89d41dffb29e89a50f753af7d57d0a96/types_requests-2.32.4.20260107.tar.gz", hash = "sha256:018a11ac158f801bfa84857ddec1650750e393df8a004a8a9ae2a9bec6fcb24f", size = 23165, upload-time = "2026-01-07T03:20:54.091Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/12/709ea261f2bf91ef0a26a9eed20f2623227a8ed85610c1e54c5805692ecb/types_requests-2.32.4.20260107-py3-none-any.whl", hash = "sha256:b703fe72f8ce5b31ef031264fe9395cac8f46a04661a79f7ed31a80fb308730d", size = 20676, upload-time = "2026-01-07T03:20:52.929Z" },
 ]
 
 [[package]]

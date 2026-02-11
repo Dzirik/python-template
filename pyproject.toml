@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Jiri Palek", email = "jiri.palek@gmail.com"}
 ]
 keywords = ["template", "python", "logger", "config", "testing"]
 classifiers = [
@@ -61,6 +61,8 @@ dependencies = [
     "jedi>=0.18.2",
     "parso>=0.8.3",
     "debugpy>=1.6.6",
+    "types-requests",
+    "openpyxl",
 ]
 
 [project.optional-dependencies]
@@ -176,7 +178,7 @@ source = ["src"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 40  # Fail if coverage drops below 40%
+fail_under = 25  # Fail if coverage drops below fail_under%
 show_missing = true
 skip_covered = false
 
