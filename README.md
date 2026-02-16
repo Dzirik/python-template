@@ -1207,30 +1207,30 @@ Configure FILE_NAME and FILE_FOLDER in make_config.mk before running.
 @
 
 ### jupyter
-@STARTS JUPYTER NOTEBOOK SERVER
-Launches Jupyter Notebook server using nbclassic (Python 3.12 compatible).
+@STARTS JUPYTER NOTEBOOK 7 SERVER
+Launches Jupyter Notebook 7 server (JupyterLab-based interface).
 The notebook server will automatically open in your default web browser.
 Press Ctrl+C in the terminal to stop the server.
 
 Usage: make jupyter
 
 Features:
- - Uses nbclassic (maintained notebook 6.x runner for Python 3.12)
+ - Uses Notebook 7 (modern JupyterLab-based interface)
  - Compatible with jupytext .py format notebooks
  - Opens in default browser automatically
  - Access notebooks in the notebooks/ folder
  - Server runs on http://localhost:8888 by default
+ - Built-in Table of Contents panel (View → Table of Contents)
 
-Technical Details:
- - Uses 'python -m nbclassic' instead of 'jupyter notebook'
- - NBClassic provides the same notebook 6.x interface
- - Fully compatible with Python 3.12 (no 'imp' or 'distutils' errors)
+Opening .py Files as Notebooks:
+ - Right-click on .py file → "Open With" → "Notebook" (recommended)
+ - Or use the Command Palette (Ctrl+Shift+C) and search for "Jupytext"
 
 Troubleshooting:
 If you encounter errors, ensure dependencies are up to date:
- - make sync-install (updates all packages including nbclassic)
+ - make sync-install (updates all packages)
 
-See JUPYTER_UPDATE.md for complete details on the Python 3.12 compatibility fix.
+See docs/JUPYTER_ECOSYSTEM.md for complete details on the Notebook 7 migration.
 @
 
 ### cover-base
@@ -1569,6 +1569,8 @@ Jupyter notebooks are the central component of this project, serving as the prim
 
 Notebooks are designed for exploration and documentation, not for storing critical business logic.
 
+> **📋 Version 2.0 (Notebook 7):** This repository uses Notebook 7 with JupyterLab-based interface. See [`docs/JUPYTER_ECOSYSTEM.md`](docs/JUPYTER_ECOSYSTEM.md) for the complete migration changelog and troubleshooting guide.
+
 <a name="jupytext-library"></a>
 ## Jupytext Library
 [ToC](#table-of-content)
@@ -1581,6 +1583,15 @@ The native Jupyter format (`.ipynb`) contains both code and metadata (execution 
 - ✅ Reduced merge conflicts
 - ✅ IDE support for notebook editing
 - ✅ Automatic two-way synchronization (.ipynb ↔ .py)
+
+**Opening .py Files as Notebooks (Notebook 7):**
+
+The recommended method to open `.py` files as notebooks in Notebook 7:
+1. Start Jupyter: `make jupyter`
+2. In the file browser, **right-click** on the `.py` file
+3. Select **"Open With"** → **"Notebook"**
+
+> **💡 Tip:** This right-click method is the most reliable way to open `.py` files as notebooks in Notebook 7.
 
 **Setup in a Notebook:**
 
@@ -1603,6 +1614,7 @@ The native Jupyter format (`.ipynb`) contains both code and metadata (execution 
 - `.ipynb` files are excluded from version control (see `.gitignore`)
 - Only `.py` format files are tracked in Git
 - Jupyter automatically maintains both formats when saving
+- A `jupytext.toml` file in the repository root enables global pairing
 
 <a name="jupyter-notebooks-folders"></a>
 ## Jupyter Notebooks Folder Structure
@@ -1667,7 +1679,16 @@ The recommended template (`notebooks/template/template_notebook_final.py`) provi
 - **Envs:** Environment variable management
 - **Timer:** Track analysis execution time
 
+**Navigation in Notebook 7:**
+
+> **⚠️ Known Limitation:** In-notebook anchor links (Table of Contents links) may not work with regular click in Notebook 7. Use the **built-in Table of Contents panel** instead:
+> - Click **View → Table of Contents** in the menu, OR
+> - Click the ToC icon (list icon) in the left sidebar
+>
+> **Note:** Anchor links work correctly in HTML exports.
+
 **Version History:**
+- v2.0 - Update to Notebook 7 (JupyterLab-based interface)
 - v1.1 - Fixed notebook creation for automated runs
 
 <a name="parameterized-notebooks"></a>

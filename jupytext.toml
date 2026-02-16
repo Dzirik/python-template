@@ -1,0 +1,13 @@
+# Jupytext configuration for automatic .py ↔ .ipynb pairing
+# This file enables jupytext to work with Notebook 7 / JupyterLab 4
+
+# Pair all notebooks in the repository to py:light format
+# This matches the existing notebook metadata format
+formats = "ipynb,py:light"
+
+# Notebook metadata filter - preserve essential metadata
+# notebook_metadata_filter = "jupytext,kernelspec,-all"
+
+# Cell metadata filter - keep tags for papermill parameterization
+# cell_metadata_filter = "tags,-all"
+
