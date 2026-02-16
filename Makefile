@@ -372,11 +372,11 @@ all-f: mypy-f format-check-f lint-check-f docstring-check-f test-f
 
 jupyter: clear-console
 	@uv run --no-project python ./src/utils/make_print_documentation.py jupyter
-	@echo "Starting Jupyter Notebook..."
+	@echo "Starting Jupyter Notebook 7 (JupyterLab-based)..."
 	@echo "The notebook server will open in your default browser"
 	@echo "Press Ctrl+C to stop the server"
 	@echo ""
-	@uv run --no-project python -m nbclassic
+	@uv run --no-project python -m notebook
 
 # COVERAGE -------------------------------------------------------------------------------------------------------------
 

@@ -1,5 +1,8 @@
 """
 Functions for supporting notebook functionality.
+
+Updated for Notebook 7 (JupyterLab-based) compatibility.
+Uses jupyter_server.serverapp instead of notebook.notebookapp.
 """
 
 from json import loads
@@ -8,7 +11,7 @@ from re import search
 
 from ipykernel.connect import get_connection_file
 from IPython.display import HTML
-from notebook.notebookapp import list_running_servers
+from jupyter_server.serverapp import list_running_servers
 from requests import get
 
 

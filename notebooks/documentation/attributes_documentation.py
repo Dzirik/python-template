@@ -14,7 +14,7 @@
 # ---
 
 # # Attributes Refactoring
-# *Version:* `1.2` *(Jupytext, time measurements, logger, param notebook execution, fixes)*
+# *Version:* `2.0` *(Update to notebook 7)*
 
 # <a name="ToC"></a>
 # # Table of Content
@@ -25,34 +25,34 @@
 #     - [Notebook Functionality and Appearance](#1-2)
 #     - [External Libraries](#1-3)
 #     - [Internal Code](#1-4)
-#     - [Constants](#1-5)   
-# - [Analysis](#2)   
-#     - [Functions](#2-1)   
+#     - [Constants](#1-5)
+# - [Analysis](#2)
+#     - [Functions](#2-1)
 #     - [CSV](#2-2)
 #     - [XLSM](#2-3)
 #     - [Comparison](#2-4)
 #         - [Compare Attributes Order](#2-4-1)
 #         - [Compare Attr Names and Types](#2-4-2)
 #         - [Compare Lists of Attributes](#2-4-3)
-# - [Final Timestamp](#3)  
+# - [Final Timestamp](#3)
 
 # <a name="0"></a>
 # # Notebook Description
-# [ToC](#ToC) 
+# [ToC](#ToC)
 
 # Reads attributes from the table in csv or xlsm file.
 # - **CSV is faster (2ms to 297 ms)**
 
 # <a name="1"></a>
 # # GENERAL SETTINGS
-# [ToC](#ToC)  
-# General settings for the notebook (paths, python libraries, own code, notebook constants). 
+# [ToC](#ToC)
+# General settings for the notebook (paths, python libraries, own code, notebook constants).
 #
 # > *NOTE: All imports and constants for the notebook settings shoud be here. Nothing should be imported in the analysis section.*
 
 # <a name="1-1"></a>
 # ### Paths
-# [ToC](#ToC)  
+# [ToC](#ToC)
 #
 # Adding paths that are necessary to import code from within the repository.
 
@@ -64,7 +64,7 @@ sys.path+=[os.path.join(os.getcwd(), ".."), os.path.join(os.getcwd(), "../..")] 
 # ### Notebook Functionality and Appearance
 # [ToC](#ToC)  
 # Necessary libraries for notebook functionality:
-# - A button for hiding/showing the code. By default it is deactivated and can be activated by setting CREATE_BUTTON constant to True. 
+# - A button for hiding/showing the code. By default it is deactivated and can be activated by setting CREATE_BUTTON constant to True.
 # > **NOTE: This way, using the function, the button works only in active notebook. If the functionality needs to be preserved in html export, then the code has to be incluced directly into notebook.**
 # - Set notebook width to 100%.
 # - Notebook data frame setting for better visibility.
@@ -83,7 +83,7 @@ try:
     SUPPORT_FUNCTIONS_READ = True
 except:
     NOTEBOOK_NAME = "NO_NAME"
-    SUPPORT_FUNCTIONS_READ = False  
+    SUPPORT_FUNCTIONS_READ = False
 
 from src.utils.logger import Logger
 from src.utils.envs import Envs
@@ -105,13 +105,13 @@ if ADDAPT_WIDTH:
 
 # <a name="1-3"></a>
 # ### External Libraries
-# [ToC](#ToC)  
+# [ToC](#ToC)
 
 from datetime import datetime
 
 # <a name="1-4"></a>
 # ### Internal Code
-# [ToC](#ToC)  
+# [ToC](#ToC)
 # Code, libraries, classes, functions from within the repository.
 
 # +
@@ -124,14 +124,14 @@ from src.data.attributes import Attributes, ATTRS_GROUPS_NAMES
 # -
 
 # <a name="1-5"></a>
-# ### Constants
+# ### Constants    
 # [ToC](#ToC)  
 # Constants for the notebook.
 #
 # > *NOTE: Please use all letters upper.*
 
 # #### General Constants
-# [ToC](#ToC)  
+# [ToC](#ToC)
 
 # from src.global_constants import *  # Remember to import only the constants in use
 N_ROWS_TO_DISPLAY = 2
@@ -139,7 +139,7 @@ FIGURE_SIZE_SETTING = {"autosize": False, "width": 2200, "height": 750}
 
 
 # #### Constants for Setting Automatic Run
-# [ToC](#ToC)  
+# [ToC](#ToC)
 
 # + tags=["parameters"]
 # MANDATORY FOR CONFIG DEFINITION AND NOTEBOOK AND ITS OUTPUTS IDENTIFICATION #########################################
@@ -149,18 +149,18 @@ ID = create_datetime_id(now=datetime.now(), add_micro=False)
 # -
 
 # #### Python Config Initialisation
-# [ToC](#ToC)  
+# [ToC](#ToC)
 
 envs.set_config(PYTHON_CONFIG_NAME)
 
 # #### Notebook Specific Constants
-# [ToC](#ToC)  
+# [ToC](#ToC)
 
 
 
 # <a name="2"></a>
 # # ANALYSIS
-# [ToC](#ToC)  
+# [ToC](#ToC)
 
 timer = Timer()
 timer.start()
@@ -168,21 +168,21 @@ timer.start()
 
 # <a name="2-1"></a>
 # ## Functions
-# [ToC](#ToC) 
+# [ToC](#ToC)
 
 def compare_attributes(attrs_01, attrs_02):
     correct_output_name = []
     correct_output_type = []
     for field, data_01 in attrs_01._asdict().items():
         data_02 = getattr(attrs_02, field)
-        
+
         # attribute names
         if data_01.name != data_02.name:
             correct_output_name.append(0)
             # print(f"{csv_data}: {A_data}")
         else:
             correct_output_name.append(1)
-        
+
         # attribute types
         if data_01.type != data_02.type:
             correct_output_type.append(0)
@@ -270,6 +270,6 @@ timer.get_data()[3]
 
 # <a name="3"></a>
 # # Final Timestamp
-# [ToC](#ToC)  
+# [ToC](#ToC)
 
 Logger().end_timer()
