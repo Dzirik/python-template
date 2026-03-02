@@ -258,11 +258,16 @@ mypy-f: clear-console
 	@uv run --no-project python ./src/utils/make_print_documentation.py mypy-f
 	@echo "  - File Name: $(FILE_CODE)"
 	@echo ""
-	@uv run --no-project mypy --strict $(FILE_CODE) --config-file mypy.ini
+	@cd src && uv run --no-project mypy --strict $(FILE_FOLDER)/$(FILE_NAME).py --config-file ../mypy.ini
+ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python ./src/utils/make_print_documentation.py mypy-f
 	@echo "  - File Name: $(FILE_TEST)"
 	@echo ""
-	@uv run --no-project mypy --strict $(FILE_TEST) --config-file mypy.ini
+	@uv run --no-project mypy --explicit-package-bases --strict $(FILE_TEST) --config-file mypy.ini
+else
+	@echo ""
+	@echo "⚠ Warning: Test file not found, skipping mypy check: $(FILE_TEST)"
+endif
 	@echo ""
 	@uv run --no-project python ./src/utils/print_success.py success "Success: no type issues found"
 
@@ -271,10 +276,15 @@ format-check-f: clear-console
 	@echo "  - File Name: $(FILE_CODE)"
 	@echo ""
 	@uv run --no-project ruff format --check $(FILE_CODE)
+ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python ./src/utils/make_print_documentation.py format-check-f
 	@echo "  - File Name: $(FILE_TEST)"
 	@echo ""
 	@uv run --no-project ruff format --check $(FILE_TEST)
+else
+	@echo ""
+	@echo "⚠ Warning: Test file not found, skipping format check: $(FILE_TEST)"
+endif
 	@echo ""
 	@uv run --no-project python ./src/utils/print_success.py success "Success: code is already formatted"
 
@@ -283,20 +293,30 @@ format-fix-f: clear-console
 	@echo "  - File Name: $(FILE_CODE)"
 	@echo ""
 	@uv run --no-project ruff format $(FILE_CODE)
+ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python ./src/utils/make_print_documentation.py format-fix-f
 	@echo "  - File Name: $(FILE_TEST)"
 	@echo ""
 	@uv run --no-project ruff format $(FILE_TEST)
+else
+	@echo ""
+	@echo "⚠ Warning: Test file not found, skipping format fix: $(FILE_TEST)"
+endif
 
 lint-check-f: clear-console
 	@uv run --no-project python ./src/utils/make_print_documentation.py lint-check-f
 	@echo "  - File Name: $(FILE_CODE)"
 	@echo ""
 	@uv run --no-project ruff check --extend-ignore D $(FILE_CODE)
+ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python ./src/utils/make_print_documentation.py lint-check-f
 	@echo "  - File Name: $(FILE_TEST)"
 	@echo ""
 	@uv run --no-project ruff check --extend-ignore D $(FILE_TEST)
+else
+	@echo ""
+	@echo "⚠ Warning: Test file not found, skipping lint check: $(FILE_TEST)"
+endif
 	@echo ""
 	@uv run --no-project python ./src/utils/print_success.py success "Success: no linting issues found"
 
@@ -305,20 +325,30 @@ lint-fix-f: clear-console
 	@echo "  - File Name: $(FILE_CODE)"
 	@echo ""
 	@uv run --no-project ruff check --extend-ignore D --fix $(FILE_CODE)
+ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python ./src/utils/make_print_documentation.py lint-fix-f
 	@echo "  - File Name: $(FILE_TEST)"
 	@echo ""
 	@uv run --no-project ruff check --extend-ignore D --fix $(FILE_TEST)
+else
+	@echo ""
+	@echo "⚠ Warning: Test file not found, skipping lint fix: $(FILE_TEST)"
+endif
 
 docstring-check-f: clear-console
 	@uv run --no-project python ./src/utils/make_print_documentation.py docstring-check-f
 	@echo "  - File Name: $(FILE_CODE)"
 	@echo ""
 	@uv run --no-project ruff check --select D --ignore D104 --ignore D200 --ignore D205 --ignore D400 --ignore D401 $(FILE_CODE)
+ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python ./src/utils/make_print_documentation.py docstring-check-f
 	@echo "  - File Name: $(FILE_TEST)"
 	@echo ""
 	@uv run --no-project ruff check --select D --ignore D104 --ignore D200 --ignore D205 --ignore D400 --ignore D401 $(FILE_TEST)
+else
+	@echo ""
+	@echo "⚠ Warning: Test file not found, skipping docstring check: $(FILE_TEST)"
+endif
 	@echo ""
 	@uv run --no-project python ./src/utils/print_success.py success "Success: no docstring issues found"
 
@@ -327,10 +357,15 @@ docstring-fix-f: clear-console
 	@echo "  - File Name: $(FILE_CODE)"
 	@echo ""
 	@uv run --no-project ruff check --select D --ignore D104 --ignore D200 --ignore D205 --ignore D400 --ignore D401 --fix $(FILE_CODE)
+ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python ./src/utils/make_print_documentation.py docstring-fix-f
 	@echo "  - File Name: $(FILE_TEST)"
 	@echo ""
 	@uv run --no-project ruff check --select D --ignore D104 --ignore D200 --ignore D205 --ignore D400 --ignore D401 --fix $(FILE_TEST)
+else
+	@echo ""
+	@echo "⚠ Warning: Test file not found, skipping docstring fix: $(FILE_TEST)"
+endif
 
 test-f-detailed: clear-console
 	@uv run --no-project python ./src/utils/make_print_documentation.py test-f-detailed
@@ -356,14 +391,14 @@ test-f: clear-console
 ifeq ($(shell test -e $(FILE_TEST) && echo -n yes),yes)
 	@uv run --no-project python -m pytest --quiet $(FILE_TEST)
 else
-	@echo "ERROR: FOLLOWING FILE DOES NOT EXIST: $(FILE_TEST)"
+	@echo "⚠ Warning: Test file not found, skipping: $(FILE_TEST)"
 	@echo ""
 endif
 ifeq ($(shell test -e $(FILE_DOCTEST) && echo -n yes),yes)
 	@uv run --no-project python -m pytest --quiet $(FILE_DOCTEST)
 else
+	@echo "⚠ Warning: Doctest file not found, skipping: $(FILE_DOCTEST)"
 	@echo ""
-	@echo "ERROR: FOLLOWING FILE DOES NOT EXIST: $(FILE_DOCTEST)"
 endif
 
 all-f: mypy-f format-check-f lint-check-f docstring-check-f test-f
