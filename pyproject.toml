@@ -64,6 +64,8 @@ dependencies = [
     "debugpy>=1.8.0",
     "types-requests",
     "openpyxl",
+    "marimo[recommended]>=0.20.0",
+    "plotly>=6.0.0",
 ]
 
 [project.optional-dependencies]
