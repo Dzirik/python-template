@@ -9,7 +9,7 @@ import typedload
 from pyhocon import ConfigFactory
 
 from src.constants.global_constants import FOLDER_CONFIGURATIONS
-from src.transfer.collector_config_data import CollectorConfigData
+from src.utils.config_data import ConfigData
 from src.utils.logger import Logger
 from src.utils.meta_class import CONFIG_TYPE_NAME, MetaClass
 
@@ -21,12 +21,12 @@ class BaseConfig(MetaClass):
     Only src/utils/config is different, but interface is the same.
     """
 
-    def __init__(self, class_name: str, config_file_name: str, data_structure: type[CollectorConfigData]) -> None:
+    def __init__(self, class_name: str, config_file_name: str, data_structure: type[ConfigData]) -> None:
         MetaClass.__init__(self, class_type=CONFIG_TYPE_NAME, class_name=class_name)
 
         self._config_file_name = config_file_name
         self._data_structure = data_structure
-        self._data: CollectorConfigData
+        self._data: ConfigData
 
         self.parse_config()
 
@@ -43,10 +43,10 @@ class BaseConfig(MetaClass):
 
         Logger().debug(f"{self.get_class_name} was created from {self._config_file_name}.conf file.")
 
-    def get_data(self) -> CollectorConfigData:
+    def get_data(self) -> ConfigData:
         """
         Returns the config's named tuple.
-        :return: Union[CollectorConfigData]. Named tuple with data.
+        :return: Union[ConfigData]. Named tuple with data.
         """
         return self._data
 
