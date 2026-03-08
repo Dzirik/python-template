@@ -413,6 +413,79 @@ jupyter: clear-console
 	@echo ""
 	@uv run --no-project python -m notebook
 
+# MARIMO NOTEBOOKS -----------------------------------------------------------------------------------------------------
+
+marimo: clear-console
+	@uv run --no-project python ./src/utils/make_print_documentation.py marimo
+	@echo "Starting Marimo editor in marimo folder..."
+	@echo "The editor will open in your default browser"
+	@echo "Press Ctrl+C to stop the server"
+	@echo ""
+	@cd marimo && uv run --no-project marimo edit
+
+marimo-app: clear-console
+ifdef notebook
+	@uv run --no-project python ./src/utils/make_print_documentation.py marimo-app
+	@if [ -f "marimo/$(notebook)" ]; then \
+		echo "Running Marimo app: marimo/$(notebook)"; \
+		echo "The app will open in your default browser"; \
+		echo "Press Ctrl+C to stop the server"; \
+		echo ""; \
+		cd marimo && uv run --no-project marimo run $(notebook); \
+	else \
+		echo "Error: File 'marimo/$(notebook)' not found."; \
+		echo ""; \
+		echo "Available notebooks in marimo folder:"; \
+		find marimo -name "*.py" -type f | grep -v "__init__.py" | sed 's|marimo/||'; \
+		exit 1; \
+	fi
+else
+	@echo "Error: Please specify notebook name with notebook=<filename.py>"
+	@echo ""
+	@echo "Usage: make marimo-app notebook=<filename.py>"
+	@echo "Example: make marimo-app notebook=raw/my_notebook.py"
+	@echo ""
+	@echo "Available notebooks in marimo folder:"
+	@find marimo -name "*.py" -type f | grep -v "__init__.py" | sed 's|marimo/||'
+endif
+
+marimo-new: clear-console
+ifdef notebook
+	@uv run --no-project python ./src/utils/make_print_documentation.py marimo-new
+	@if [ -f "marimo/$(notebook)" ]; then \
+		echo "Error: File 'marimo/$(notebook)' already exists."; \
+		exit 1; \
+	else \
+		echo "Creating new Marimo notebook: marimo/$(notebook)"; \
+		echo "The editor will open in your default browser"; \
+		echo "Press Ctrl+C to stop the server"; \
+		echo ""; \
+		cd marimo && uv run --no-project marimo edit $(notebook); \
+	fi
+else
+	@echo "Error: Please specify notebook name with notebook=<filename.py>"
+	@echo ""
+	@echo "Usage: make marimo-new notebook=<filename.py>"
+	@echo "Example: make marimo-new notebook=raw/my_new_notebook.py"
+endif
+
+marimo-convert: clear-console
+ifdef notebook
+	@uv run --no-project python ./src/utils/make_print_documentation.py marimo-convert
+	@if [ -f "$(notebook)" ]; then \
+		echo "Converting Jupyter notebook to Marimo: $(notebook)"; \
+		uv run --no-project marimo convert $(notebook); \
+	else \
+		echo "Error: File '$(notebook)' not found."; \
+		exit 1; \
+	fi
+else
+	@echo "Error: Please specify notebook path with notebook=<path/to/notebook.ipynb>"
+	@echo ""
+	@echo "Usage: make marimo-convert notebook=<path/to/notebook.ipynb>"
+	@echo "Example: make marimo-convert notebook=notebooks/raw/my_notebook.ipynb"
+endif
+
 # COVERAGE -------------------------------------------------------------------------------------------------------------
 
 # if you need to ignore a file, add to @pytest line to the end --ignore=tests/tests_xxx/test_yyy.py

@@ -30,8 +30,12 @@
 /notebooks/template/*.ipynb
 /notebooks/documentation/*.ipynb
 
+# Marimo
+/marimo/temporal
+
 # Personal research notebook
 /notebooks/raw/playground_notebook.py
+/marimo/raw/playground_marimo.py
 
 # Attributes
 # /src/data/attributes.xlsm
