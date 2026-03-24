@@ -5,7 +5,9 @@ Class for simplification of saving and loading.
 """
 
 import json
-import pickle  # nosec: B403 - pickle used only with trusted internal data files
+
+# Bandit exception: pickle is intentionally used only for trusted internal data files.
+import pickle  # nosec B403
 from pathlib import Path
 from typing import Any
 
@@ -119,7 +121,7 @@ class SaverAndLoader:
         path_obj = Path(path)
         if path_obj.exists():
             if path_obj.stat().st_size > min_size:
-                return read_pickle(path)  # noqa: S301  # nosec
+                return read_pickle(path)  # noqa: S301  # nosec B301
         else:
             raise FileNotFound(description=f"File {path} was not found on selected path.")
         return DataFrame()
@@ -153,7 +155,7 @@ class SaverAndLoader:
         if path_obj.exists():
             if path_obj.stat().st_size > min_size:
                 with path_obj.open("rb") as handle:
-                    return pickle.load(handle)  # noqa: S301  # nosec
+                    return pickle.load(handle)  # noqa: S301  # nosec B301
         else:
             raise FileNotFound(description=f"File {path} was not found on selected path.")
         return None
