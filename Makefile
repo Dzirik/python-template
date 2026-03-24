@@ -142,6 +142,20 @@ else
 	@echo "Error: Please specify library name with library=<library>"
 endif
 
+lock: clear-console
+	@python ./src/utils/make_print_documentation.py lock
+	@echo "Locking dependencies from pyproject.toml..."
+	uv lock
+	@echo ""
+	@echo "✅ Lock file updated successfully!"
+
+sync: clear-console
+	@python ./src/utils/make_print_documentation.py sync
+	@echo "Syncing dependencies from uv.lock..."
+	uv sync
+	@echo ""
+	@echo "✅ Dependencies synced successfully!"
+
 sync-deps: clear-console
 	@python ./src/utils/make_print_documentation.py sync-deps
 	@echo "Syncing dependencies from pyproject.toml to uv.lock..."
