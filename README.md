@@ -69,7 +69,8 @@ This is a minimal Python repository template with essential tools for profession
 
 ```bash
 # Windows (PowerShell)
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+irm https://astral.sh/uv/install.ps1 -OutFile install_uv.ps1
+powershell -ExecutionPolicy Bypass -File install_uv.ps1
 
 # Linux/macOS
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -820,6 +821,12 @@ Common make commands for repository management. Run `make help` for full list.
 - `make sync-install` - Sync and install all dependencies
 - `make sync-install-dev` - Sync and install dev dependencies only
 
+**Dependency Locking:**
+- `make lock` - Update `uv.lock` from `pyproject.toml` (`uv lock`)
+
+**Dependency Synchronization:**
+- `make sync` - Install dependencies from `uv.lock` (`uv sync`)
+
 **Single File Quality (configure FILE_NAME and FILE_FOLDER in make_config.mk):**
 - `make mypy-f` - Type check single file
 - `make format-check-f` - Check formatting for single file
@@ -853,6 +860,12 @@ Repository Set Up & Virtual Environment:
  - make sync-deps: Syncs dependencies (updates uv.lock from pyproject.toml).
  - make sync-install: Syncs and installs all dependencies from uv.lock.
  - make sync-install-dev: Syncs and installs dev dependencies only.
+
+Dependency Locking:
+ - make lock: Updates uv.lock from pyproject.toml (uv lock).
+
+Dependency Synchronization:
+ - make sync: Installs dependencies from uv.lock (uv sync).
 
 Optional Git Hooks:
  - make install-hooks: Installs Git hooks (Windows) - pre-commit: blocks commits to main/develop, pre-push: security checks.
@@ -892,8 +905,7 @@ File-Specific Quality:
  - make docstring-fix-f FILE_CODE=<path> FILE_TEST=<path>: Auto-fix docstring issues for specific file.
  - make test-f FILE_FOLDER=<folder> FILE_NAME=<name>: Pytest for specific file (compressed).
  - make test-f-detailed FILE_FOLDER=<folder> FILE_NAME=<name>: Pytest for specific file (detailed).
- - make all-f FILE_FOLDER=<folder> FILE_NAME=<name>: All checks for specific file (mypy + format-check + 
-                                                     lint-check + docstring-check + test).
+ - make all-f FILE_FOLDER=<folder> FILE_NAME=<name>: All checks for specific file (mypy + format-check + lint-check + docstring-check + test).
 
 ## Make Documentation
 
@@ -1039,6 +1051,39 @@ Examples:
  - make remove-lib-win library=pywinpty
 
 Note: Do not specify version when removing - just the library name.
+@
+
+### lock
+@UPDATES LOCK FILE FROM PYPROJECT.TOML
+Generates or refreshes uv.lock based on dependencies declared in pyproject.toml.
+
+Usage: make lock
+
+This command:
+ 1. Reads dependency groups from pyproject.toml
+ 2. Resolves compatible versions
+ 3. Writes updated versions to uv.lock
+
+Use this when:
+ - You manually edit pyproject.toml
+ - You want to refresh locked versions
+ - You need to commit lock file updates
+@
+
+### sync
+@INSTALLS DEPENDENCIES FROM UV.LOCK
+Installs packages exactly as pinned in uv.lock into the active virtual environment.
+
+Usage: make sync
+
+This command:
+ 1. Reads pinned packages from uv.lock
+ 2. Installs/removes packages to match the lock file state
+
+Use this when:
+ - You pull repository changes with lock file updates
+ - You need to align your environment with committed dependencies
+ - You want a reproducible environment install
 @
 
 ### sync-deps
@@ -2022,12 +2067,12 @@ def __(chart, mo):
 
 **Supported Plotly Interactions:**
 
-| Interaction | Description | Access via |
-|-------------|-------------|------------|
-| Click | Single point selection | `chart.value["points"]` |
-| Box Select | Rectangle selection | `chart.value["points"]` |
-| Lasso Select | Freeform selection | `chart.value["points"]` |
-| Hover | Hover information | Not captured (display only) |
+ Interaction  Description  Access via
+--------------------------------------
+ Click  Single point selection  `chart.value["points"]`
+ Box Select  Rectangle selection  `chart.value["points"]`
+ Lasso Select  Freeform selection  `chart.value["points"]`
+ Hover  Hover information  Not captured (display only)
 
 **Example: Interactive Bar Chart with Filtering:**
 
@@ -2080,4 +2125,3 @@ chart
 ```
 
 See the [Marimo documentation](https://docs.marimo.io/) for comprehensive guides and API reference.
-

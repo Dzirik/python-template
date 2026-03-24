@@ -4,7 +4,8 @@ Code for automatically execution of notebooks based on parameters.
 NOTE: Joblib could be used instead of multiprocessing.
 """
 
-import subprocess  # nosec: B404 - used only with hardcoded safe commands
+# Bandit exception: subprocess is invoked with a fixed argument list and no shell.
+import subprocess  # nosec B404
 import sys
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
@@ -143,7 +144,7 @@ class NotebookExecutioner:
                 path_out = str((Path(self._params.output_folder) / f"{name}.ipynb").resolve())
             papermill.execute_notebook(self._params.notebook_path, path_out, exec_params)
             if self._params.convert_to_html:
-                subprocess.run(  # noqa: S603  # nosec
+                subprocess.run(  # noqa: S603  # nosec B603
                     [sys.executable, "-m", "jupyter", "nbconvert", "--to", "html", path_out],
                     check=True,
                     capture_output=True,

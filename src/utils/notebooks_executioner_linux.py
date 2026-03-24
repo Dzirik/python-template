@@ -11,7 +11,8 @@ Inherits from NotebookExecutioner and overrides only the execute() method.
 
 from __future__ import annotations
 
-import subprocess  # nosec: B404 - used only with hardcoded safe commands
+# Bandit exception: subprocess is invoked with a fixed argument list and no shell.
+import subprocess  # nosec B404
 import sys
 from datetime import datetime
 from multiprocessing import cpu_count, get_context
@@ -82,7 +83,7 @@ class NotebookExecutionerLinux(NotebookExecutioner):
 
         if base["convert_to_html"]:
             # Call via the current interpreter to avoid PATH issues; pass args as list to avoid quoting problems
-            subprocess.run(  # noqa: S603  # nosec
+            subprocess.run(  # noqa: S603  # nosec B603
                 [sys.executable, "-m", "jupyter", "nbconvert", "--to", "html", path_out],
                 check=True,
                 stdout=subprocess.PIPE,

@@ -31,6 +31,11 @@
 /notebooks/documentation/*.ipynb
 
 # Marimo
+/marimo/apps/__marimo__
+/marimo/documentation/__marimo__
+/marimo/final/__marimo__
+/marimo/raw/__marimo__
+/marimo/temporal/__marimo__
 /marimo/temporal
 
 # Personal research notebook
