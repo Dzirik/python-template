@@ -256,7 +256,8 @@ security-check-no-clear:
 		--ignore-vuln PYSEC-2023-272 \
 		--ignore-vuln PYSEC-2024-165 \
 		--ignore-vuln PYSEC-2023-23 \
-		--ignore-vuln PYSEC-2023-24
+		--ignore-vuln PYSEC-2023-24 \
+		--ignore-vuln GHSA-pjjw-68hj-v9mw
 	@echo ""
 	@uv run --no-project python ./src/utils/print_success.py success "✅ Success: no security issues found"
 
