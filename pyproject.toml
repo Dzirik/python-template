@@ -66,6 +66,7 @@ dependencies = [
     "openpyxl",
     "marimo[recommended]>=0.20.0",
     "plotly>=6.0.0",
+    "termcolor",
 ]
 
 [project.optional-dependencies]

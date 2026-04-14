@@ -2,11 +2,11 @@
 Pipelines configuration file.
 """
 
-from src.scripts.watchdog_config_data import WatchdogConfigData
+from src.configurations.watchdog_config_data import WatchdogConfigData
 from src.utils.base_config import BaseConfig
 
 
-class WatchdogConfig(BaseConfig):
+class WatchdogConfig(BaseConfig[WatchdogConfigData]):
     """
     Pipelines configuration file.
     """

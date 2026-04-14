@@ -1,6 +1,6 @@
 # PERSONAL SETTING ------------------------------------------------------------------
 # Heartbeat
-/src/scripts/heartbeats*
+/src/scripts_production/heartbeats*
 
 # Data files
 /data-dev

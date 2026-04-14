@@ -335,7 +335,7 @@ This ensures workers have a chance to clean up before being forcefully terminate
 ## 8. Logging Architecture
 
 Both `checker.py` and `watchdog.py` use the project's centralized
-[`src.utils.logger.Logger`](../utils/logger.py) singleton for all log output. This
+[`src.utils.logger.Logger`](../src/utils/logger.py) singleton for all log output. This
 provides a consistent logging interface across the entire codebase.
 
 ### Dual-handler design

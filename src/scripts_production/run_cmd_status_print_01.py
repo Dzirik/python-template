@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 
 sys.path += [str(Path.cwd() / ".."), str(Path.cwd() / "../..")]  # one and two up
 
-from src.scripts.heartbeat import HealthcheckHeartbeat, HealthcheckHeartbeatConfig
-from src.scripts.watchdog import resolve_ping_url, write_pid
+from src.scripts_production.heartbeat import HealthcheckHeartbeat, HealthcheckHeartbeatConfig
+from src.scripts_production.watchdog import resolve_ping_url, write_pid
 
 _ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(_ENV_PATH)

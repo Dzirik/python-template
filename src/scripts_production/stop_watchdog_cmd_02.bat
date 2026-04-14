@@ -4,7 +4,7 @@ setlocal
 REM ==========================================
 REM CONFIGURATION (EDIT THIS)
 REM ==========================================
-set TASK_NAME=watchdog_cmd_01
+set TASK_NAME=watchdog_cmd_02
 REM ==========================================
 
 echo.

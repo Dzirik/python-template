@@ -22,9 +22,9 @@ from dotenv import load_dotenv
 _SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path += [str(_SCRIPT_DIR / ".."), str(_SCRIPT_DIR / "../..")]
 
-from src.scripts.heartbeat import HealthcheckHeartbeat, HealthcheckHeartbeatConfig  # noqa: E402
-from src.scripts.watchdog_config import WatchdogConfig  # noqa: E402
-from src.scripts.watchdog_config_data import WorkerData  # noqa: E402
+from src.configurations.watchdog_config import WatchdogConfig  # noqa: E402
+from src.configurations.watchdog_config_data import WorkerData  # noqa: E402
+from src.scripts_production.heartbeat import HealthcheckHeartbeat, HealthcheckHeartbeatConfig  # noqa: E402
 from src.utils.logger import Logger  # noqa: E402
 
 _ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -35,7 +35,7 @@ LOGS_DIR = BASE_DIR.parent.parent / "logs"
 PYTHON_EXE = sys.executable
 CHECK_INTERVAL = 30.0
 STARTUP_GRACE_PERIOD = 5.0
-WATCHDOG_HEALTHCHECK_INTERVAL = 60.0
+WATCHDOG_HEALTHCHECK_INTERVAL = 30.0
 
 PROCESSES: dict[str, subprocess.Popen[bytes]] = {}
 HC_HEARTBEAT: HealthcheckHeartbeat | None = None

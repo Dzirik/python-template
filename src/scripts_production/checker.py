@@ -5,11 +5,11 @@ Supervision hierarchy:
     Windows Task Scheduler -> checker.py -> watchdog.py -> Worker Processes
 
 (.venv) PS D:\...\src\scripts> python checker.py --config-name=watchdog_cmd_01
+(.venv) PS D:\...\src\scripts> python checker.py --config-name=watchdog_cmd_02
 """
 
 import argparse
 import logging
-import os
 import subprocess
 import sys
 import time
@@ -21,7 +21,7 @@ LOGS_DIR = BASE_DIR.parent.parent / "logs"
 
 sys.path += [str(BASE_DIR / ".."), str(BASE_DIR / "../..")]
 
-from src.scripts.watchdog_config import WatchdogConfig  # noqa: E402
+from src.configurations.watchdog_config import WatchdogConfig  # noqa: E402
 from src.utils.logger import Logger  # noqa: E402
 
 SCHEDULER_INTERVAL = 30.0
@@ -81,78 +81,68 @@ def is_process_alive(pid: int) -> bool:
     """
     Check whether a process with the given PID is currently running (Windows).
 
+    **Why not ``os.kill(pid, 0)``?**
+    On Windows, ``os.kill`` calls ``OpenProcess`` which can fail with
+    ``PermissionError`` (ERROR_ACCESS_DENIED) **or** ``OSError``
+    [WinError 87] (ERROR_INVALID_PARAMETER) for processes spawned by
+    ``WmiPrvSE.exe`` in a different session.  The latter is
+    indistinguishable from "process does not exist" in Python's
+    exception hierarchy, so ``os.kill`` cannot reliably detect
+    cross-session WMI-spawned processes.
+
+    This implementation uses ``tasklist /FI "PID eq {pid}" /NH`` which
+    queries the Windows kernel process table directly and works
+    regardless of session boundaries or security context.
+
     :param pid: int. Process ID to check.
     :return: bool. True if process is alive, False otherwise.
     """
     try:
-        os.kill(pid, 0)
-        return True
-    except OSError:
-        return False
-
-
-def _get_process_cmdline(pid: int) -> str | None:
-    """
-    Retrieve the command line of a running process via WMIC (Windows).
-
-    :param pid: int. Process ID to query.
-    :return: str | None. The command line string, or None if the process
-        does not exist or the query fails.
-    """
-    try:
         result = subprocess.run(  # noqa: S603
-            ["wmic", "process", "where", f"ProcessId={pid}", "get", "CommandLine"],  # noqa: S607
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"],  # noqa: S607
             capture_output=True,
             text=True,
             timeout=10,
             check=False,
         )
+        # When a matching process exists, tasklist prints a line like:
+        #   python.exe                39904 Console                    3     98,948 K
+        # When no process matches, it prints:
+        #   INFO: No tasks are running which match the specified criteria.
+        # We check for the PID as a substring in the output.
+        return str(pid) in result.stdout
+    except Exception:
+        # Timeout or other failure — assume not alive to be safe.
+        return False
+
+
+def _get_process_cmdline(pid: int) -> str | None:
+    """
+    Retrieve the command line of a running process via PowerShell CIM.
+
+    Uses ``Get-CimInstance Win32_Process`` which, unlike the deprecated
+    ``wmic.exe``, works reliably across session boundaries and security
+    contexts (e.g. processes spawned by ``WmiPrvSE.exe``).
+
+    :param pid: int. Process ID to query.
+    :return: str | None. The command line string, or None if the process
+        does not exist or the query fails.
+    """
+    ps_cmd = f'Get-CimInstance Win32_Process -Filter "ProcessId={pid}" | Select-Object -ExpandProperty CommandLine'
+    try:
+        result = subprocess.run(  # noqa: S603
+            ["powershell", "-NoProfile", "-Command", ps_cmd],  # noqa: S607
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
         if result.returncode != 0:
             return None
-        # WMIC output: header line ("CommandLine"), then the value line(s).
-        lines = [ln.strip() for ln in result.stdout.strip().splitlines() if ln.strip()]
-        # First non-empty line is the header; the rest is the command line.
-        if len(lines) < 2:
-            return None
-        return " ".join(lines[1:])
+        cmdline = result.stdout.strip()
+        return cmdline or None
     except Exception:
         return None
-
-
-def is_watchdog_process(pid: int, config_name: str) -> bool:
-    """
-    Verify that *pid* belongs to a running watchdog.py instance for *config_name*.
-
-    First checks basic process existence with ``os.kill(pid, 0)``, then
-    queries the process command line via WMIC to confirm it is actually a
-    ``watchdog.py`` process launched with the expected ``--config-name``.
-    This prevents false-positive "healthy" results caused by PID recycling
-    on Windows.
-
-    :param pid: int. Process ID read from the .pid file.
-    :param config_name: str. Expected ``--config-name`` value.
-    :return: bool. True only if the process exists AND its command line
-        matches the expected watchdog instance.
-    """
-    if not is_process_alive(pid):
-        return False
-
-    cmdline = _get_process_cmdline(pid)
-    if cmdline is None:
-        # WMIC failed — fall back to the basic alive check so that a
-        # transient WMI error doesn't trigger an unnecessary recovery.
-        Logger().warning(f"Could not verify command line for PID {pid}; assuming alive (WMIC unavailable).")
-        return True
-
-    if "watchdog.py" not in cmdline:
-        Logger().warning(f"PID {pid} is alive but is not a watchdog process (cmdline: {cmdline!r}).")
-        return False
-
-    if config_name not in cmdline:
-        Logger().warning(f"PID {pid} is a watchdog process but for a different config (cmdline: {cmdline!r}).")
-        return False
-
-    return True
 
 
 def read_pid(pid_file: Path) -> int | None:
@@ -174,8 +164,17 @@ def is_watchdog_healthy(heartbeat_dir: Path, config_name: str) -> bool:
     """
     Determine whether the watchdog process is healthy.
 
-    Uses :func:`is_watchdog_process` to verify the PID actually belongs to a
-    ``watchdog.py`` instance for *config_name*, guarding against PID recycling.
+    The check requires **all three** conditions to be met:
+
+    1. ``watchdog.pid`` exists and contains a valid PID.
+    2. That PID belongs to a live process (``is_process_alive``).
+    3. ``watchdog.hb`` exists and was updated within
+       ``HEARTBEAT_THRESHOLD`` seconds.
+
+    Command-line verification (``is_watchdog_process``) is used as a
+    secondary guard against PID recycling, but a fresh heartbeat
+    combined with a live PID is accepted even when the command-line
+    query fails (cross-session / WMI access issues).
 
     :param heartbeat_dir: Path. Heartbeat directory for this config.
     :param config_name: str. Expected ``--config-name`` value.
@@ -184,15 +183,18 @@ def is_watchdog_healthy(heartbeat_dir: Path, config_name: str) -> bool:
     pid_file = heartbeat_dir / "watchdog.pid"
     hb_file = heartbeat_dir / "watchdog.hb"
 
+    # --- PID file ---
     pid = read_pid(pid_file)
     if pid is None:
         Logger().warning("Watchdog unhealthy: watchdog.pid missing or invalid.")
         return False
 
-    if not is_watchdog_process(pid, config_name):
-        Logger().warning(f"Watchdog unhealthy: PID {pid} is not running (or belongs to another process).")
+    # --- Basic process liveness ---
+    if not is_process_alive(pid):
+        Logger().warning(f"Watchdog unhealthy: PID {pid} is not running.")
         return False
 
+    # --- Heartbeat freshness ---
     if not hb_file.exists():
         Logger().warning("Watchdog unhealthy: watchdog.hb missing.")
         return False
@@ -201,6 +203,26 @@ def is_watchdog_healthy(heartbeat_dir: Path, config_name: str) -> bool:
     if age > HEARTBEAT_THRESHOLD:
         Logger().warning(f"Watchdog unhealthy: heartbeat stale ({age:.0f}s old, threshold {HEARTBEAT_THRESHOLD:.0f}s).")
         return False
+
+    # --- Command-line identity check (PID recycling guard) ---
+    # Windows paths are case-insensitive and WMI/CMD may alter casing
+    # or quoting.  Normalise to lower-case for reliable substring matching.
+    cmdline = _get_process_cmdline(pid)
+    if cmdline is not None:
+        cmdline_lower = cmdline.lower()
+        if "watchdog.py" not in cmdline_lower:
+            unhealthy_reason = f"PID {pid} is not a watchdog process (cmdline: {cmdline!r})"
+        elif config_name.lower() not in cmdline_lower:
+            unhealthy_reason = f"PID {pid} is a watchdog for a different config (cmdline: {cmdline!r})"
+        else:
+            unhealthy_reason = None
+        if unhealthy_reason is not None:
+            Logger().warning(f"Watchdog unhealthy: {unhealthy_reason}.")
+            return False
+    else:
+        # CIM query failed — process is alive and heartbeat is fresh,
+        # so we accept it to avoid false-positive recovery.
+        Logger().info(f"CIM command-line query unavailable for PID {pid}; heartbeat fresh — accepting as healthy.")
 
     return True
 
@@ -219,10 +241,86 @@ def kill_process(pid: int) -> None:
     )
 
 
+def _spawn_via_wmi(config_name: str) -> None:
+    """
+    Start the watchdog process via WMI ``Win32_Process.Create``.
+
+    **Why not subprocess.Popen?**
+    When Task Scheduler runs ``checker.py``, it wraps the process in a
+    Windows Job Object.  Every child created with ``subprocess.Popen``
+    inherits that Job Object.  When the task completes (``checker.py``
+    exits), Task Scheduler kills the entire Job Object — including the
+    newly spawned watchdog.
+
+    ``CREATE_BREAKAWAY_FROM_JOB`` does **not** solve this because the
+    Task Scheduler Job Object does not set
+    ``JOB_OBJECT_LIMIT_BREAKAWAY_OK``; the flag is silently ignored.
+
+    **Solution:** Use ``Invoke-CimMethod`` to ask ``WmiPrvSE.exe`` to
+    create the process on our behalf.  Because ``WmiPrvSE.exe`` is not
+    part of the Task Scheduler Job Object, the new process is completely
+    independent.
+
+    The Python command is wrapped inside ``cmd.exe /c`` with
+    ``>> logfile 2>&1`` I/O redirection.  ``cmd.exe`` handles console
+    allocation correctly and redirects Python's stdout/stderr to a real
+    file, providing valid handles regardless of the parent's window
+    station.
+
+    :param config_name: str. Configuration name to pass to watchdog.py.
+    :return: None.
+    :raises RuntimeError: If WMI process creation fails.
+    """
+    python_exe = str(Path(sys.executable).resolve())
+    watchdog_script = str((BASE_DIR / "watchdog.py").resolve())
+    cwd = str(BASE_DIR.resolve())
+
+    # Ensure the logs directory exists for the redirected output.
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    wmi_log = str((LOGS_DIR / f"watchdog_{config_name}_wmi.log").resolve())
+
+    # Wrap in cmd.exe /c with I/O redirection so that the Python
+    # process has valid stdout/stderr handles (the log file).
+    inner = f'"{python_exe}" -u "{watchdog_script}" --config-name {config_name} >> "{wmi_log}" 2>&1'
+    cmd_value = f'cmd.exe /c "{inner}"'
+
+    # Escape single quotes for PowerShell single-quoted string literals.
+    ps_q = str.maketrans({"'": "''"})
+
+    ps_script = (
+        "$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create "
+        "-Arguments @{"
+        f"CommandLine='{cmd_value.translate(ps_q)}';"
+        f"CurrentDirectory='{cwd.translate(ps_q)}'"
+        "}; "
+        "if ($r.ReturnValue -ne 0) { "
+        'throw "Win32_Process.Create failed: ReturnValue=$($r.ReturnValue)" '
+        "} "
+        "Write-Output $r.ProcessId"
+    )
+
+    Logger().info(f"WMI spawn command: {cmd_value}")
+
+    result = subprocess.run(  # noqa: S603
+        ["powershell", "-NoProfile", "-Command", ps_script],  # noqa: S607
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip()
+        raise RuntimeError(f"WMI process creation failed (rc={result.returncode}): {stderr}")
+
+    wmi_pid = result.stdout.strip()
+    Logger().info(f"WMI spawned cmd.exe wrapper with PID {wmi_pid}.")
+
+
 def recover_watchdog(heartbeat_dir: Path, config_name: str) -> None:
     """
     Perform a full recovery: kill the watchdog tree, clean up zombie workers,
-    and restart the watchdog.
+    and restart the watchdog via WMI.
 
     :param heartbeat_dir: Path. Heartbeat directory for this config.
     :param config_name: str. Configuration name to pass to watchdog.py.
@@ -247,12 +345,10 @@ def recover_watchdog(heartbeat_dir: Path, config_name: str) -> None:
     Logger().info("Waiting for process tree to be reclaimed...")
     time.sleep(2.0)
 
-    # Step 4: Restart watchdog
+    # Step 4: Restart watchdog via WMI so it is NOT part of the Task
+    # Scheduler Job Object (see _spawn_via_wmi docstring for details).
     Logger().info(f"Starting new watchdog instance with config '{config_name}'...")
-    subprocess.Popen(  # noqa: S603
-        [sys.executable, "-u", "watchdog.py", "--config-name", config_name],
-        cwd=str(BASE_DIR),
-    )
+    _spawn_via_wmi(config_name)
     Logger().info("Watchdog restarted.")
 
 
