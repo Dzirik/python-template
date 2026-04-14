@@ -10,7 +10,11 @@ Supervision hierarchy:
 
 import argparse
 import logging
-import subprocess
+import os
+import re
+
+# Bandit B404: subprocess is required for controlled Windows process management.
+import subprocess  # nosec B404
 import sys
 import time
 from logging.handlers import RotatingFileHandler
@@ -26,6 +30,12 @@ from src.utils.logger import Logger  # noqa: E402
 
 SCHEDULER_INTERVAL = 30.0
 HEARTBEAT_THRESHOLD = (SCHEDULER_INTERVAL * 2) * 1.5
+CONFIG_NAME_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
+SYSTEM_ROOT = Path(os.environ.get("SYSTEMROOT", r"C:\\Windows"))
+SYSTEM32_DIR = SYSTEM_ROOT / "System32"
+TASKLIST_EXE = str((SYSTEM32_DIR / "tasklist.exe").resolve())
+TASKKILL_EXE = str((SYSTEM32_DIR / "taskkill.exe").resolve())
+POWERSHELL_EXE = str((SYSTEM32_DIR / "WindowsPowerShell" / "v1.0" / "powershell.exe").resolve())
 
 
 def _add_script_file_handler(config_name: str) -> None:
@@ -74,6 +84,8 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if not args.config_name.strip():
         parser.error("--config-name must not be an empty or blank string.")
+    if CONFIG_NAME_PATTERN.fullmatch(args.config_name) is None:
+        parser.error("--config-name must contain only letters, numbers, '_' or '-'.")
     return args
 
 
@@ -98,8 +110,8 @@ def is_process_alive(pid: int) -> bool:
     :return: bool. True if process is alive, False otherwise.
     """
     try:
-        result = subprocess.run(  # noqa: S603
-            ["tasklist", "/FI", f"PID eq {pid}", "/NH"],  # noqa: S607
+        result = subprocess.run(  # noqa: S603  # nosec B603
+            [TASKLIST_EXE, "/FI", f"PID eq {pid}", "/NH"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -130,8 +142,8 @@ def _get_process_cmdline(pid: int) -> str | None:
     """
     ps_cmd = f'Get-CimInstance Win32_Process -Filter "ProcessId={pid}" | Select-Object -ExpandProperty CommandLine'
     try:
-        result = subprocess.run(  # noqa: S603
-            ["powershell", "-NoProfile", "-Command", ps_cmd],  # noqa: S607
+        result = subprocess.run(  # noqa: S603  # nosec B603
+            [POWERSHELL_EXE, "-NoProfile", "-Command", ps_cmd],
             capture_output=True,
             text=True,
             timeout=15,
@@ -155,7 +167,8 @@ def read_pid(pid_file: Path) -> int | None:
     if not pid_file.exists():
         return None
     try:
-        return int(pid_file.read_text(encoding="utf-8").strip())
+        pid = int(pid_file.read_text(encoding="utf-8").strip())
+        return pid if pid > 0 else None
     except (ValueError, OSError):
         return None
 
@@ -234,8 +247,8 @@ def kill_process(pid: int) -> None:
     :param pid: int. Process ID to kill.
     :return: None.
     """
-    subprocess.run(  # noqa: S603
-        ["taskkill", "/PID", str(pid), "/T", "/F"],  # noqa: S607
+    subprocess.run(  # noqa: S603  # nosec B603
+        [TASKKILL_EXE, "/PID", str(pid), "/T", "/F"],
         capture_output=True,
         check=False,
     )
@@ -271,6 +284,9 @@ def _spawn_via_wmi(config_name: str) -> None:
     :return: None.
     :raises RuntimeError: If WMI process creation fails.
     """
+    if CONFIG_NAME_PATTERN.fullmatch(config_name) is None:
+        raise ValueError("config_name must contain only letters, numbers, '_' or '-'.")
+
     python_exe = str(Path(sys.executable).resolve())
     watchdog_script = str((BASE_DIR / "watchdog.py").resolve())
     cwd = str(BASE_DIR.resolve())
@@ -301,8 +317,8 @@ def _spawn_via_wmi(config_name: str) -> None:
 
     Logger().info(f"WMI spawn command: {cmd_value}")
 
-    result = subprocess.run(  # noqa: S603
-        ["powershell", "-NoProfile", "-Command", ps_script],  # noqa: S607
+    result = subprocess.run(  # noqa: S603  # nosec B603
+        [POWERSHELL_EXE, "-NoProfile", "-Command", ps_script],
         capture_output=True,
         text=True,
         timeout=30,

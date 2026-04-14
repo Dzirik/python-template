@@ -37,7 +37,6 @@ properties:
 """
 
 from datetime import datetime
-from os import system
 
 from termcolor import colored
 
@@ -58,7 +57,6 @@ def print_in_color(
     if color is not None:
         # pylint: disable=bare-except
         try:
-            system("color")  # noqa: S605, S607
             print(colored(message, color, on_color, attrs))
         except Exception:
             print(message)

@@ -9,8 +9,11 @@ import argparse
 import json
 import logging
 import os
+import re
 import signal
-import subprocess
+
+# Bandit B404: subprocess is required to manage worker processes.
+import subprocess  # nosec B404
 import sys
 import time
 from logging.handlers import RotatingFileHandler
@@ -36,6 +39,7 @@ PYTHON_EXE = sys.executable
 CHECK_INTERVAL = 30.0
 STARTUP_GRACE_PERIOD = 5.0
 WATCHDOG_HEALTHCHECK_INTERVAL = 30.0
+CONFIG_NAME_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
 
 PROCESSES: dict[str, subprocess.Popen[bytes]] = {}
 HC_HEARTBEAT: HealthcheckHeartbeat | None = None
@@ -121,6 +125,8 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if not args.config_name.strip():
         parser.error("--config-name must not be an empty or blank string.")
+    if CONFIG_NAME_PATTERN.fullmatch(args.config_name) is None:
+        parser.error("--config-name must contain only letters, numbers, '_' or '-'.")
     return args
 
 
@@ -147,6 +153,18 @@ def write_pid(name: str, heartbeat_dir: Path) -> None:
     pid_path.write_text(str(os.getpid()), encoding="utf-8")
 
 
+def _resolve_worker_script(script: str) -> Path:
+    """Resolve and validate worker scripts so watchdog only launches files under BASE_DIR."""
+    script_path = (BASE_DIR / script).resolve()
+    try:
+        script_path.relative_to(BASE_DIR)
+    except ValueError as exc:
+        raise ValueError(f"Worker script must be inside {BASE_DIR}: {script!r}") from exc
+    if not script_path.is_file():
+        raise FileNotFoundError(f"Worker script does not exist: {script_path}")
+    return script_path
+
+
 def build_command(
     script: str,
     worker_name: str,
@@ -164,7 +182,7 @@ def build_command(
     :param healthcheck_url_key: str. Key to look up the ping URL in HEALTHCHECK_PING_URL.
     :return: list[str]. Full subprocess command.
     """
-    script_path = str(BASE_DIR / script)
+    script_path = str(_resolve_worker_script(script))
     hb_path = str(heartbeat_path(worker_name, heartbeat_dir))
 
     return [
@@ -199,7 +217,7 @@ def start_worker(config: WorkerData, heartbeat_dir: Path) -> subprocess.Popen[by
         healthcheck_url_key=config.healthcheck_url_key,
     )
     Logger().info(f"Starting {config.name}: {' '.join(command)}")
-    return subprocess.Popen(command, cwd=str(BASE_DIR))  # noqa: S603
+    return subprocess.Popen(command, cwd=str(BASE_DIR))  # noqa: S603  # nosec
 
 
 def heartbeat_age_seconds(worker_name: str, heartbeat_dir: Path) -> float:
