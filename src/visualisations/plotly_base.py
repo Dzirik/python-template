@@ -6,9 +6,15 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import plotly.graph_objs as go
-import plotly.offline as py
+import plotly.io as pio
 
 from src.constants.global_constants import COLORS
+
+try:
+    get_ipython()  # type: ignore[name-defined]
+    pio.renderers.default = "notebook"
+except NameError:
+    pass
 
 # Type alias for the colors dictionary structure
 ColorsDict = dict[str, Any]
@@ -60,10 +66,10 @@ class PlotlyBase(ABC):
     ) -> go.Figure | None:
         fig = go.Figure(data=trace, layout=layout)
 
-        if not self._figure_size["autosize"]:
-            fig.update_layout(autosize=self._figure_size["autosize"])
-            fig.update_layout(width=self._figure_size["width"])
-            fig.update_layout(height=self._figure_size["height"])
+        if self._figure_size["autosize"]:
+            fig.update_layout(autosize=True, height=self._figure_size["height"])
+        else:
+            fig.update_layout(autosize=False, width=self._figure_size["width"], height=self._figure_size["height"])
 
         if shapes is not None:
             for shape in shapes:
@@ -72,8 +78,7 @@ class PlotlyBase(ABC):
         if dashboard:
             return fig
 
-        py.iplot(fig)
-        return None
+        return fig
 
     def _create_vertical_lines(self, vertical_lines_positions: list[float] | None) -> list[Any] | None:
         if vertical_lines_positions is None:

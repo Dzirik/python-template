@@ -4,6 +4,7 @@
 
 # Data files
 /data-dev
+/tmp
 
 # requirements
 /requirements_linux.txt
