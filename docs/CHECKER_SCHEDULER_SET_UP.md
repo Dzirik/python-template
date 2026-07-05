@@ -64,11 +64,11 @@ scheduled invocation runs as normal.
 Before starting, confirm the following:
 
 - **Virtual environment is set up.** The `.venv` folder must exist inside the project
-  root (e.g. `D:\python-template\.venv`). Verify this by opening the project folder in File
+  root (e.g. `D:\TEMP\pt\.venv`). Verify this by opening the project folder in File
   Explorer and checking for the `.venv` directory.
 - **You know the full project path.** You will need to type it during setup. To find it,
   open File Explorer, navigate to the project folder, and click the address bar — it will
-  display the complete path (e.g. `D:\python-template`).
+  display the complete path (e.g. `D:\TEMP\pt`).
 - **A valid HOCON configuration file exists** in the `configurations/` directory at the
   project root (e.g. `configurations/watchdog_cmd_02.conf`). The `--config-name` argument
   passed to `checker.py` must match the filename without the `.conf` extension.
@@ -78,14 +78,14 @@ Before starting, confirm the following:
 
 ## 3. The Action Tab — Exact Values
 
-Replace `D:\python-template` with your actual project path in all three fields below, and replace
+Replace `D:\TEMP\pt` with your actual project path in all three fields below, and replace
 `<your_config_name>` with the name of your HOCON configuration (e.g. `watchdog_cmd_02`).
 
 | Field | Value |
 |---|---|
-| **Program / script** | `D:\python-template\.venv\Scripts\python.exe` |
-| **Add arguments** | `-u D:\python-template\src\scripts_production\checker.py --config-name <your_config_name>` |
-| **Start in** | `D:\python-template\src\scripts_production` |
+| **Program / script** | `D:\TEMP\pt\.venv\Scripts\python.exe` |
+| **Add arguments** | `-u D:\TEMP\pt\src\scripts_production\checker.py --config-name <your_config_name>` |
+| **Start in** | `D:\TEMP\pt\src\scripts_production` |
 
 **Why each value:**
 
@@ -162,9 +162,9 @@ A dialog with several tabs will open. Work through each tab below.
 14. Click **New…** to add an action.
 15. **Action:** Leave as `Start a program`.
 16. Fill in the three fields with the values from [Section 3](#3-the-action-tab--exact-values):
-    - **Program / script:** `D:\python-template\.venv\Scripts\python.exe`
-    - **Add arguments:** `-u D:\python-template\src\scripts_production\checker.py --config-name watchdog_cmd_02`
-    - **Start in:** `D:\python-template\src\scripts_production`
+    - **Program / script:** `D:\TEMP\pt\.venv\Scripts\python.exe`
+    - **Add arguments:** `-u D:\TEMP\pt\src\scripts_production\checker.py --config-name watchdog_cmd_02`
+    - **Start in:** `D:\TEMP\pt\src\scripts_production`
 17. Click **OK**.
 
 ### Conditions tab
@@ -380,7 +380,7 @@ Open a **Command Prompt** (search for `cmd` in the Start menu) and run the exact
 that Task Scheduler will use, substituting your actual project path:
 
 ```
-"D:\python-template\.venv\Scripts\python.exe" -u "D:\python-template\src\scripts_production\checker.py" --config-name watchdog_cmd_02
+"D:\TEMP\pt\.venv\Scripts\python.exe" -u "D:\TEMP\pt\src\scripts_production\checker.py" --config-name watchdog_cmd_02
 ```
 
 `checker.py` should start, log a health-status message, and exit within a few seconds.
@@ -404,7 +404,7 @@ long enough to update its heartbeat file. Investigate by:
    short-lived startup.
 2. Running `watchdog.py` manually in a terminal to observe startup errors directly:
    ```
-   "D:\python-template\.venv\Scripts\python.exe" -u "D:\python-template\src\scripts_production\watchdog.py" --config-name watchdog_cmd_02
+   "D:\TEMP\pt\.venv\Scripts\python.exe" -u "D:\TEMP\pt\src\scripts_production\watchdog.py" --config-name watchdog_cmd_02
    ```
 
 ### Task runs but no notifications appear
