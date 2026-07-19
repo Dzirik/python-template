@@ -14,9 +14,9 @@ from numpy import array, array_equal, dtype, ndarray, zeros
 from numpy.random import default_rng
 from pandas import DatetimeIndex
 
-from src.constants.global_constants import FP, P
 from src.exceptions.development_exception import NoProperOptionInIf
 from src.transformations.datetime_one_hot_transformer import DatetimeOneHotEncoderTransformer
+from src.transformations.transformer_methods import FP, P
 from src.utils.envs import Envs
 from src.utils.leap_year import is_leap
 

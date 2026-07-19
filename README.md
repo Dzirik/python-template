@@ -1,4 +1,4 @@
-# Python Repository - Minimal Template
+# Python Repository - Data Science Template
 
 <a name="table-of-content"></a>
 # Table of Content
@@ -19,7 +19,7 @@
 - [Makefile](#makefile)
 - [Core Tools](#core-tools)
     - [Logger](#logger)
-    - [Config](#config)
+    - [Application Config](#config)
     - [Timer](#timer)
     - [Environment Variables](#environment-variables)
     - [Datetime Functions](#datetime-functions)
@@ -40,16 +40,17 @@
 # Introduction
 [ToC](#table-of-content)
 
-This is a minimal Python repository template with essential tools for professional development:
-- **Logger system** with multiple configurations (file, console, size limits)
-- **Configuration management** using HOCON format
-- **Exception handling** with structured error codes and automatic logging
-- **Data transformers** with example datetime one-hot encoder
-- **Code quality tools** (mypy, ruff, pytest)
-- **Make commands** for common tasks
-- **Testing infrastructure** with pytest
+This is a **batteries-included, Windows-first Python template for data-oriented projects.** Clone it and the plumbing every data-science project needs — across its whole lifecycle from data collection to production run — is already in place, so effort goes to the data problem, not the scaffolding. See [`docs/PROJECT_VISION.md`](docs/PROJECT_VISION.md) for the full vision, scope, and guiding principles.
 
-**📊 Repository Evaluation:** See [`docs/EVALUATION.md`](docs/EVALUATION.md) for comprehensive evaluation as a base template for data-oriented tasks (Rating: 8.5/10) and [`docs/EVALUATION_SUMMARY.md`](docs/EVALUATION_SUMMARY.md) for quick reference with prioritized recommendations.
+Included out of the box:
+- **Logger system** with multiple configurations (file, console, size limits)
+- **Configuration management** using HOCON format + environment variables
+- **Exception handling** with structured error codes and automatic logging
+- **Data transformers** with sklearn-style base class and an example datetime one-hot encoder
+- **Notebook workflows** — Jupyter (jupytext-paired) and Marimo reactive notebooks, plus Plotly visualisation helpers
+- **Production process supervision** — watchdog/heartbeat/checker for long-running jobs
+- **Code quality tools** (mypy, ruff, pytest) enforced through the Makefile and CI
+- **Testing infrastructure** with pytest
 
 <a name="installation"></a>
 # Installation
@@ -63,7 +64,7 @@ This is a minimal Python repository template with essential tools for profession
 - Windows 10/11 or Linux (Ubuntu 20.04+)
 - Make command (Windows: install via [Cygwin](https://www.cygwin.com/) with binutils and make packages)
 - UV package manager (see installation below)
-- Python 3.12 (recommended) or Python 3.11-3.13 (see `docs/LIBRARIES_LIST.md` for version details)
+- Python 3.13 (recommended) or Python 3.13-3.14 (see `docs/LIBRARIES_LIST.md` for version details)
 
 **UV Installation:**
 
@@ -113,7 +114,7 @@ The `make create-venv` command automatically sets up repository files and create
 - `make_config.mk` (from template)
 - `configurations/python_personal.conf` (from python_repo.conf)
 - `.env` file (empty, for environment variables)
-- Virtual environment with Python 3.12 and all dependencies
+- Virtual environment with Python 3.13 and all dependencies
 
 <a name="configuration"></a>
 ## Configuration
@@ -138,7 +139,7 @@ The repository uses a `.env` file for user-specific configuration and sensitive 
 # Configuration file to use (without .conf extension)
 ENV_CONFIG=python_personal
 
-# Logger configuration to use (without .conf extension)
+# Logger configuration to use (without .toml extension)
 ENV_LOGGER=logger_file_limit_console
 
 # Flag for running unit tests
@@ -187,12 +188,13 @@ cp configurations/python_local.conf configurations/python_custom.conf
 ```
 
 **Logger Configurations:**
-Available in `configurations/` folder:
-- `logger_console.conf` - Console output only
-- `logger_file.conf` - File output only
-- `logger_file_console.conf` - File + console logging configuration
-- `logger_file_limit.conf` - File logging with size limit (5MB, 2 backups)
-- `logger_file_limit_console.conf` - File limit + console logging configuration
+Available in `configurations/loggers/` folder as TOML `logging.config.dictConfig` documents
+(parsed by the stdlib `tomllib`; see [ADR 0004](docs/adr/0004-logger-profiles-toml-dictconfig.md)):
+- `logger_console.toml` - Console output only
+- `logger_file.toml` - File output only
+- `logger_file_console.toml` - File + console logging configuration
+- `logger_file_limit.toml` - File logging with size limit (5MB, 2 backups)
+- `logger_file_limit_console.toml` - File limit + console logging configuration
 
 Set logger via environment variable: `ENV_LOGGER=logger_file_console`
 
@@ -200,7 +202,7 @@ Set logger via environment variable: `ENV_LOGGER=logger_file_console`
 # Files and Folders Structure
 [ToC](#table-of-content)
 
-This minimal repository contains the essential structure for a Python project with logger, configuration system, and testing infrastructure.
+This repository contains the full structure for a data-oriented Python project with logger, configuration system, transformers, notebook workflows, production supervision, and testing infrastructure.
 
 <a name="folders"></a>
 ## Folders
@@ -214,11 +216,11 @@ This minimal repository contains the essential structure for a Python project wi
 - *configurations*
     - A folder for configuration files (.conf files using HOCON format).
     - Contains:
-        - *logger_console.conf* - Console-only logging configuration
-        - *logger_file.conf* - File-only logging configuration
-        - *logger_file_console.conf* - File + console logging configuration
-        - *logger_file_limit.conf* - File logging with size limit (5MB, 2 backups)
-        - *logger_file_limit_console.conf* - File limit + console logging configuration
+        - *loggers/logger_console.toml* - Console-only logging configuration
+        - *loggers/logger_file.toml* - File-only logging configuration
+        - *loggers/logger_file_console.toml* - File + console logging configuration
+        - *loggers/logger_file_limit.toml* - File logging with size limit (5MB, 2 backups)
+        - *loggers/logger_file_limit_console.toml* - File limit + console logging configuration
         - *python_repo.conf* - Python configuration template (paths, database credentials)
 - *data*
     - A folder for storing data files. **It is not a good practice to keep large data files in version control**.
@@ -227,9 +229,11 @@ This minimal repository contains the essential structure for a Python project wi
 - *docs*
     - For documentation files.
     - Contains:
-        - *EVALUATION.md* - **Comprehensive repository evaluation for data-oriented tasks (Rating: 8.5/10, 791 lines)**
-        - *EVALUATION_SUMMARY.md* - **Quick reference evaluation summary with prioritized action plan**
-        - *TESTING_CHECKLIST.md* - **Checklist for end-to-end verification when cloning or deploying the template**
+        - *PROJECT_VISION.md* - The template's purpose, scope, guiding principles, constraints, and roadmap
+        - *CHANGELOG.md* - Version history
+        - *tutorials/* - Task-oriented how-to guides: `CHECKER_SCHEDULER_SET_UP.md`, `PERSISTENT_RUN.md`, and video walkthroughs (e.g. Cygwin/make set up)
+        - *meta/* - Template maintenance docs: `JUPYTER_ECOSYSTEM.md` (Notebook 7 migration), `TESTING_CHECKLIST.md`
+        - *notebooks_freezes/* - HTML exports of the `notebooks/documentation/` notebooks, for offline reference
 - *logs*
     - For log files generated by the logger system.
     - This folder is empty by default and excluded from version control.
@@ -247,7 +251,7 @@ This minimal repository contains the essential structure for a Python project wi
     - Main folder for source code.
     - *constants*
         - Folder for storing constants.
-        - *global_constants.py* - Global constants including environment variable names, folder paths, and transformer method identifiers.
+        - *env_constants.py* - Single source for env-var name keys and their canonical defaults.
         - *\_\_init\_\_.py* - Package initialization file.
     - *exceptions*
         - Custom exception classes for structured error handling.
@@ -260,11 +264,12 @@ This minimal repository contains the essential structure for a Python project wi
         - Data transformation classes (example: datetime one-hot encoding).
         - *base_transformer.py* - Base class for all transformers (fit/predict/fit_predict/inverse pattern)
         - *datetime_one_hot_transformer.py* - Transforms DatetimeIndex to one-hot encoded arrays
+        - *transformer_methods.py* - Canonical method-identifier vocabulary for the transformer suite (F/FP/P/INV)
         - *\_\_init\_\_.py* - Package initialization file.
     - *utils*
         - Code used across the whole project (utilities, helpers, core functionality).
-        - *config.py* - Main configuration handler (Singleton pattern)
-        - *config_data.py* - Configuration data structures (NamedTuples)
+        - *application_config.py* - Main configuration handler (Singleton pattern)
+        - *application_config_data.py* - Configuration data structures (NamedTuples)
         - *date_time_functions.py* - Datetime manipulation utilities (string conversion, unique ID generation)
         - *envs.py* - Environment variables handler
         - *leap_year.py* - Sample utility function (for testing make commands)
@@ -273,6 +278,11 @@ This minimal repository contains the essential structure for a Python project wi
         - *meta_class.py* - Metaclass for unified class monitoring
         - *singleton_meta.py* - Singleton pattern implementation
         - *timer.py* - Timer for execution time measurement
+        - *\_\_init\_\_.py* - Package initialization file.
+    - *visualisations*
+        - Plotly-based visualisation helpers.
+        - *colors.py* - The visualisation palette (`COLORS`) shared by the plotly classes
+        - *plotly_base.py* - Base class for plotly visualisations
         - *\_\_init\_\_.py* - Package initialization file.
     - *\_\_init\_\_.py* - Package initialization file.
     - *Note*: In PyCharm mark this as a source folder.
@@ -332,7 +342,7 @@ This minimal repository contains the essential structure for a Python project wi
         - This re-normalizes all tracked files according to the new `.gitattributes` rules
 - *pyproject.toml*
     - Contains Ruff configuration for code formatting and linting.
-    - Configured for 120-character line length, Python 3.11+ target.
+    - Configured for 120-character line length, Python 3.13+ target.
     - Includes rules for code style, imports, naming, and simplifications.
 - *LICENSE*
     - MIT License file.
@@ -355,10 +365,10 @@ This minimal repository contains the essential structure for a Python project wi
     - Project configuration file for Python package management.
     - Contains:
         - Project metadata (name, version, description, authors)
-        - Python version requirement (*requires-python = ">=3.11,<3.14"*)
+        - Python version requirement (*requires-python = ">=3.13,<3.15"*)
         - All project dependencies (7 runtime + 6 dev libraries)
         - Tool configurations (mypy, ruff, pytest, coverage, bandit)
-    - Supports Python 3.11, 3.12, and 3.13 (see LIBRARIES_LIST.md for version details)
+    - Supports Python 3.13 and 3.14 (see LIBRARIES_LIST.md for version details)
 - *README.md*
     - Main documentation file (this file).
     - Comprehensive guide to repository structure, setup, and usage.
@@ -379,7 +389,7 @@ These files are created by *make create-venv* or during development and are excl
 - *uv.lock*
     - Lock file for Python *UV* package manager (created by *uv sync* or *uv lock*).
     - Ensures reproducible dependency installations.
-    - **Note:** Not included in minimal repo - will be generated when you set up the environment.
+    - **Note:** Not included in the template - will be generated when you set up the environment.
 
 <a name="code-quality"></a>
 # Code Quality
@@ -466,7 +476,7 @@ Pytest is a testing framework for building simple and scalable tests.
 ### Testing Checklist
 [ToC](#table-of-content)
 
-For a full end-to-end verification flow when cloning or deploying this template, follow the checklist in `docs/TESTING_CHECKLIST.md`. It covers setup, quality gates, tests, security checks, hooks, and CI verification.
+For a full end-to-end verification flow when cloning or deploying this template, follow the checklist in `docs/meta/TESTING_CHECKLIST.md`. It covers setup, quality gates, tests, security checks, hooks, and CI verification.
 
 ### Coverage
 [ToC](#table-of-content)
@@ -703,7 +713,7 @@ The CI workflow (`.github/workflows/ci.yml`) automatically runs `make all-secure
 - ✅ **Bandit** - Security vulnerability scanning in source code
 - ✅ **pip-audit** - Dependency vulnerability scanning
 
-The workflow tests against **Python 3.11, 3.12, and 3.13** to ensure compatibility.
+The workflow tests against **Python 3.13 and 3.14** to ensure compatibility.
 
 ### How to Set It Up
 
@@ -760,7 +770,7 @@ make security-check
 
 The workflow is configured in `.github/workflows/ci.yml`:
 - **Triggers:** Pull requests and pushes to `main`/`develop`
-- **Python versions:** 3.11, 3.12, 3.13 (matrix testing)
+- **Python versions:** 3.13, 3.14 (matrix testing)
 - **Package manager:** UV (with caching for faster runs)
 - **Main command:** `make all-secure` (includes security checks)
 - **Artifacts:** Coverage reports (uploaded if available)
@@ -919,7 +929,7 @@ Automatically sets up repository files and creates virtual environment:
  - Copies make_config_template.mk to make_config.mk
  - Copies python_repo.conf to python_personal.conf
  - Creates .env file
- - Installs Python 3.12
+ - Installs Python 3.13
  - Creates venv .venv for Windows (all dependencies: base + [windows] + [dev])
 @
 
@@ -929,7 +939,7 @@ Automatically sets up repository files and creates virtual environment:
  - Copies make_config_template.mk to make_config.mk
  - Copies python_repo.conf to python_personal.conf
  - Creates .env file
- - Installs Python 3.12
+ - Installs Python 3.13
  - Creates venv .venv for Linux/macOS (all dependencies: base + [dev])
 @
 
@@ -1301,7 +1311,7 @@ Troubleshooting:
 If you encounter errors, ensure dependencies are up to date:
  - make sync-install (updates all packages)
 
-See docs/JUPYTER_ECOSYSTEM.md for complete details on the Notebook 7 migration.
+See docs/meta/JUPYTER_ECOSYSTEM.md for complete details on the Notebook 7 migration.
 @
 
 ### marimo
@@ -1422,10 +1432,10 @@ logger.end_timer()
 **Configuration:** Set via `ENV_LOGGER` environment variable (see [Configuration](#configuration) section).
 
 <a name="config"></a>
-## Config
+## Application Config
 [ToC](#table-of-content)
 
-Singleton-based configuration management using HOCON format. Located in `src/utils/config.py`.
+Singleton-based configuration management using HOCON format. Located in `src/utils/application_config.py`.
 
 **Configuration Structure:**
 - `name` - Project name
@@ -1433,9 +1443,9 @@ Singleton-based configuration management using HOCON format. Located in `src/uti
 
 **Usage:**
 ```python
-from src.utils.config import Config
+from src.utils.application_config import ApplicationConfig
 
-config = Config()
+config = ApplicationConfig()
 data = config.get_data()
 
 # Access configuration values
@@ -1717,7 +1727,7 @@ Jupyter notebooks are the central component of this project, serving as the prim
 
 Notebooks are designed for exploration and documentation, not for storing critical business logic.
 
-> **📋 Version 2.0 (Notebook 7):** This repository uses Notebook 7 with JupyterLab-based interface. See [`docs/JUPYTER_ECOSYSTEM.md`](docs/JUPYTER_ECOSYSTEM.md) for the complete migration changelog and troubleshooting guide.
+> **📋 Version 2.0 (Notebook 7):** This repository uses Notebook 7 with JupyterLab-based interface. See [`docs/meta/JUPYTER_ECOSYSTEM.md`](docs/meta/JUPYTER_ECOSYSTEM.md) for the complete migration changelog and troubleshooting guide.
 
 <a name="jupytext-library"></a>
 ## Jupytext Library
@@ -1773,12 +1783,12 @@ The `notebooks/` folder is organized by workflow stage:
 **notebooks/template/** - Template notebooks (setup with Jupytext):
 - `template_notebook_empty.py` - Minimal notebook with Jupytext configuration
 - `template_notebook_repo.py` - Repository template with basic functionality
-- `template_notebook_final.py` - **Recommended** - Full-featured template with all tools configured (Config, Logger, Envs)
+- `template_notebook_final.py` - **Recommended** - Full-featured template with all tools configured (ApplicationConfig, Logger, Envs)
 - `template_parameterized_execution_notebook.py` - Template for automated parameterized runs (see [Parameterized Notebooks](#parameterized-notebooks))
 
 **notebooks/documentation/** - Functionality documentation notebooks:
 - Jupyter notebooks documenting specific features and modules
-- Exported `.html` versions available in `/docs/` for offline reference
+- Exported `.html` versions available in `/docs/notebooks_freezes/` for offline reference
 - Automatically updated when documentation is changed
 
 **notebooks/raw/** - Preparation and exploration code:
@@ -1808,7 +1818,7 @@ The recommended template (`notebooks/template/template_notebook_final.py`) provi
 
 **2. General Settings**
 - All imports and constants
-- Logger, Config, and environment setup
+- Logger, ApplicationConfig, and environment setup
 - Configurations for reproducibility
 
 **3. Analysis**
@@ -1822,7 +1832,7 @@ The recommended template (`notebooks/template/template_notebook_final.py`) provi
 - Links to generated artifacts
 
 **Integrated Tools:**
-- **Config:** Access configuration from `configurations/`
+- **ApplicationConfig:** Access configuration from `configurations/`
 - **Logger:** Automatic logging of analysis steps
 - **Envs:** Environment variable management
 - **Timer:** Track analysis execution time

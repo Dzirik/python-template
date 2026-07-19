@@ -11,26 +11,21 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from src.constants.global_constants import (
+from src.constants.env_constants import (
+    DEFAULT_CONFIG,
+    DEFAULT_LOGGER,
+    DEFAULT_RUNNING_UNIT_TESTS,
     ENV_CONFIG,
+    ENV_HEALTHCHECK_PING_URL,
     ENV_LOGGER,
+    ENV_PROJECT_ROOT,
     ENV_RUNNING_UNIT_TESTS,
 )
 
-# Load .env file if it exists (loads defaults from .env.example if .env doesn't exist)
+# Load .env file if it exists
 _env_path = Path(__file__).parent.parent.parent / ".env"
 if _env_path.exists():
     load_dotenv(_env_path)
-else:
-    # Try .env.example as fallback
-    _env_example_path = Path(__file__).parent.parent.parent / ".env.example"
-    if _env_example_path.exists():
-        load_dotenv(_env_example_path)
-
-# Default values (fallback if not in .env)
-_DEFAULT_CONFIG = "python_personal"
-_DEFAULT_LOGGER = "logger_file_limit_console"
-_DEFAULT_RUNNING_UNIT_TESTS = "False"
 
 
 class Envs:
@@ -59,7 +54,7 @@ class Envs:
         """
         value = environ.get(ENV_CONFIG)
         if value is None:
-            value = _DEFAULT_CONFIG
+            value = DEFAULT_CONFIG
         return value
 
     @staticmethod
@@ -78,7 +73,7 @@ class Envs:
         """
         value = environ.get(ENV_LOGGER)
         if value is None:
-            value = _DEFAULT_LOGGER
+            value = DEFAULT_LOGGER
         return value
 
     @staticmethod
@@ -96,5 +91,29 @@ class Envs:
         """
         value = environ.get(ENV_RUNNING_UNIT_TESTS)
         if value is None:
-            value = _DEFAULT_RUNNING_UNIT_TESTS
+            value = DEFAULT_RUNNING_UNIT_TESTS
         return value.lower() == "true"
+
+    @staticmethod
+    def set_project_root_override(value: str) -> None:
+        """
+        Sets the environmental variable overriding the computed project root with value.
+        :param value: str. Absolute or relative path to use as the project root.
+        """
+        environ[ENV_PROJECT_ROOT] = value
+
+    @staticmethod
+    def get_project_root_override() -> str | None:
+        """
+        Returns the value of environmental variable overriding the computed project root or none.
+        :return: Optional[str]. Value or none.
+        """
+        return environ.get(ENV_PROJECT_ROOT)
+
+    @staticmethod
+    def get_healthcheck_ping_url() -> str | None:
+        """
+        Returns the raw healthcheck ping URL configuration string or none.
+        :return: Optional[str]. Raw JSON-formatted value or none. No default is applied.
+        """
+        return environ.get(ENV_HEALTHCHECK_PING_URL)

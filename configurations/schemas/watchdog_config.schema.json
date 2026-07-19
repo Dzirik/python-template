@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "watchdog_config.schema.json",
+  "title": "WatchdogConfigData",
+  "description": "Mirrors src/configurations/watchdog_config_data.py::WatchdogConfigData. Validates configurations/watchdogs/*.toml. Hand-maintained - see configurations/schemas/README.md for the sync policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Watchdog profile name, e.g. 'watchdog_cmd_01'."
+    },
+    "healthcheck_url_key": {
+      "type": "string",
+      "description": "Key to look up the watchdog's own ping URL in HEALTHCHECK_PING_URL. Defaults to \"\".",
+      "default": ""
+    },
+    "workers": {
+      "type": "array",
+      "description": "Defaults to an empty list.",
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/WorkerData"
+      }
+    }
+  },
+  "definitions": {
+    "WorkerData": {
+      "type": "object",
+      "description": "Mirrors the WorkerData NamedTuple. One [[workers]] array-of-tables entry.",
+      "additionalProperties": false,
+      "required": ["name", "script", "args", "timeout"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the worker/process."
+        },
+        "script": {
+          "type": "string",
+          "description": "Name of the script with .py."
+        },
+        "args": {
+          "type": "array",
+          "description": "List of script arguments.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Timeout in seconds."
+        },
+        "healthcheck_url_key": {
+          "type": "string",
+          "description": "Key to look up the ping URL in HEALTHCHECK_PING_URL. Defaults to \"\".",
+          "default": ""
+        }
+      }
+    }
+  }
+}

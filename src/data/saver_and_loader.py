@@ -13,10 +13,9 @@ from typing import Any
 
 import typedload
 from pandas import DataFrame, read_csv, read_pickle
-from pyhocon import ConfigFactory
 
 from src.exceptions.data_exception import FileNotFound
-from src.utils.config import Config
+from src.utils.application_config import ApplicationConfig
 
 
 def get_path(file_name: str, where: str = "raw_data", extension: str = ".pkl") -> str:
@@ -28,7 +27,7 @@ def get_path(file_name: str, where: str = "raw_data", extension: str = ".pkl") -
     :param extension: str. File extension. Default is .pkl.
     :return: str. Path as string.
     """
-    dir_path = getattr(Config().get_data().path, where)
+    dir_path = getattr(ApplicationConfig().get_data().path, where)
 
     return str((Path(dir_path) / (file_name + extension)).resolve())
 
@@ -176,13 +175,13 @@ class SaverAndLoader:
     @staticmethod
     def save_config_data(config_data: Any, file_name: str, where: str = "raw_data") -> None:
         """
-        Converts the config data to a dictionary and saves it as .conf file.
+        Converts the config data to a dictionary and saves it as .json file.
 
         :param config_data: Any. Configuration's named tuple (see FEConfig, MMTradingConfig, ...)
         :param file_name: str. File name without .pkl.
         :param where: str. Name of the path from the config file.
         """
-        path = get_path(file_name, where, ".conf")
+        path = get_path(file_name, where, ".json")
         data = typedload.dump(config_data)
         with Path(path).open("w", encoding="utf8") as outfile:
             json.dump(data, outfile)
@@ -190,16 +189,18 @@ class SaverAndLoader:
     @staticmethod
     def load_config_data(file_name: str, config_data_structure: Any, where: str = "raw_data") -> Any:
         """
-        Loads the config data.
+        Loads the config data back from its .json snapshot into the target named tuple.
 
         :param file_name: str. File name without .pkl.
         :param config_data_structure: Any. Named tuple of the config.
         :param where: str. Name of the path from the config file.
         """
-        path = get_path(file_name, where, ".conf")
+        path = get_path(file_name, where, ".json")
         path_obj = Path(path)
         if path_obj.exists():
-            return typedload.load(ConfigFactory.parse_file(path), config_data_structure)
+            with path_obj.open("r", encoding="utf8") as infile:
+                data = json.load(infile)
+            return typedload.load(data, config_data_structure)
         raise FileNotFound(description=f"File {path} was not found on selected path.")
 
     @staticmethod

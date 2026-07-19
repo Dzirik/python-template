@@ -1,0 +1,29 @@
+# logger for logging into the file only
+# https://gist.github.com/amamaenko/653743
+# https://docs.python.org/3/library/logging.handlers.html#logging.handlers.RotatingFileHandler
+# limits to ~5 mega - 5242880.
+# NOTSET=0.
+# DEBUG=10.
+# INFO=20.
+# WARN=30.
+# ERROR=40.
+# CRITICAL=50.
+
+version = 1
+disable_existing_loggers = false
+
+[formatters.full_formatter]
+format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+[handlers.file_handler]
+class = "logging.handlers.RotatingFileHandler"
+level = "DEBUG"
+formatter = "full_formatter"
+filename = "logs/python_log_file_limit.log"
+mode = "a"
+maxBytes = 5_242_880
+backupCount = 2 # number of backup files
+
+[root]
+level = "INFO"
+handlers = ["file_handler"]

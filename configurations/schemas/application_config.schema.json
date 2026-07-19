@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "application_config.schema.json",
+  "title": "ApplicationConfigData",
+  "description": "Mirrors src/utils/application_config_data.py::ApplicationConfigData. Validates configurations/python_repo.toml, configurations/python_local.toml, and configurations/python_personal.toml. Hand-maintained - see configurations/schemas/README.md for the sync policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "path", "param_ntb_execution"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Profile name, e.g. 'python_repo'."
+    },
+    "path": {
+      "$ref": "#/definitions/Path"
+    },
+    "param_ntb_execution": {
+      "$ref": "#/definitions/ParamNotebookExecution"
+    }
+  },
+  "definitions": {
+    "Path": {
+      "type": "object",
+      "description": "Mirrors the Path NamedTuple.",
+      "additionalProperties": false,
+      "required": ["data"],
+      "properties": {
+        "data": {
+          "type": "string",
+          "description": "Path to the data directory."
+        }
+      }
+    },
+    "ParamNotebookExecution": {
+      "type": "object",
+      "description": "Mirrors the ParamNotebookExecution NamedTuple.",
+      "additionalProperties": false,
+      "required": [
+        "use_default",
+        "convert_to_html",
+        "ntb_path",
+        "output_folder",
+        "notebook_executioner_params"
+      ],
+      "properties": {
+        "use_default": {
+          "type": "boolean"
+        },
+        "convert_to_html": {
+          "type": "boolean"
+        },
+        "ntb_path": {
+          "type": "string"
+        },
+        "output_folder": {
+          "type": "string"
+        },
+        "notebook_executioner_params": {
+          "type": "array",
+          "description": "list[dict[str, float | str]] - each entry is a free-form map of parameterized-notebook arguments.",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": ["number", "string"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

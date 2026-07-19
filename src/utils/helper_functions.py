@@ -1,6 +1,8 @@
 """
 Supporting functions for trades.
 
+Console colouring is provided by termcolor; see print_in_color in this module.
+
 termcolor: https://pypi.org/project/termcolor/
 
 Examples
@@ -36,11 +38,7 @@ properties:
   - concealed
 """
 
-from datetime import datetime
-
 from termcolor import colored
-
-from src.utils.logger import Logger
 
 
 def print_in_color(
@@ -49,10 +47,11 @@ def print_in_color(
     """
     Prints the message and optionally change a colour.
     :param message: str. Message.
-    :param color: str. Termcolor color string. See src/utils/color_console_print.py for more information.
-    :param on_color: str. Termcolor color string. See src/utils/color_console_print.py for more information.
-    :param attrs: Optional[List[str]] = None. Termcolor color strings. See src/utils/color_console_print.py for
-                                              more information.
+    :param color: str. Termcolor color string. See the termcolor docs at the top of this module for more information.
+    :param on_color: str. Termcolor color string. See the termcolor docs at the top of this module for more
+                          information.
+    :param attrs: Optional[List[str]] = None. Termcolor color strings. See the termcolor docs at the top of this
+                                              module for more information.
     """
     if color is not None:
         # pylint: disable=bare-except
@@ -63,25 +62,3 @@ def print_in_color(
         # pylint: enable=bare-except
     else:
         print(message)
-
-
-def log_and_print(
-    message: str,
-    color: str | None = None,
-    on_color: str | None = None,
-    attrs: list[str] | None = None,
-    log_only: bool = False,
-) -> None:
-    """
-    Logs and print message.
-    :param message: str. Message.
-    :param color: str. Termcolor color string. See src/utils/color_console_print.py for more information.
-    :param on_color: str. Termcolor color string. See src/utils/color_console_print.py for more information.
-    :param attrs: Optional[List[str]] = None. Termcolor color strings. See src/utils/color_console_print.py for
-                                              more information.
-    :param log_only: bool. This is added because in some situations both options are needed, especially for debugging.
-    """
-    Logger().info(message)  # time is in the logger
-    if not log_only:
-        message = f"{datetime.now().strftime('%y-%m-%d %H:%M:%S')}: {message}"  # adding time for console print
-        print_in_color(message, color, on_color, attrs)

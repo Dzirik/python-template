@@ -1,0 +1,29 @@
+# logger for logging into the file and console at the same time
+# NOTSET=0.
+# DEBUG=10.
+# INFO=20.
+# WARN=30.
+# ERROR=40.
+# CRITICAL=50.
+
+version = 1
+disable_existing_loggers = false
+
+[formatters.full_formatter]
+format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+[handlers.file_handler]
+class = "logging.FileHandler"
+level = "DEBUG"
+formatter = "full_formatter"
+filename = "logs/python_log.log"
+
+[handlers.console_handler]
+class = "logging.StreamHandler"
+level = "DEBUG"
+formatter = "full_formatter"
+stream = "ext://sys.stdout"
+
+[root]
+level = "DEBUG"
+handlers = ["file_handler", "console_handler"]

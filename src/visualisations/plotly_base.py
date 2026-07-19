@@ -8,7 +8,7 @@ from typing import Any
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from src.constants.global_constants import COLORS
+from src.visualisations.colors import COLORS
 
 try:
     get_ipython()  # type: ignore[name-defined]
@@ -45,7 +45,7 @@ class PlotlyBase(ABC):
     def set_colors(self, colors: ColorsDict) -> None:
         """
         Sets the colors for the plot.
-        :param colors: Dict[str, Any]. Check src/constants/global_constants.py for more details.
+        :param colors: Dict[str, Any]. Check src/visualisations/colors.py for more details.
             {
                 "line": ["#0f0f0f", "#011936", "#2F3E46", "#354F52"],
                 "fill": ["#087E8B", "#99AA38", "#F58A07", "#F7F5FB", "#FFBB00"],

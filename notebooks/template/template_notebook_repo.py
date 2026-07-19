@@ -29,7 +29,7 @@ sys.path+=[os.path.join(os.getcwd(), ".."), os.path.join(os.getcwd(), "../..")] 
 from src.utils.notebook_support_functions import create_button, get_notebook_name
 from src.utils.logger import Logger
 from src.utils.envs import Envs
-from src.utils.config import Config
+from src.utils.application_config import ApplicationConfig
 from pandas import options
 from IPython.display import display, HTML
 
