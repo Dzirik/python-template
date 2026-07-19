@@ -109,7 +109,7 @@ except:
 
 from src.utils.logger import Logger
 from src.utils.envs import Envs
-from src.utils.config import Config
+from src.utils.application_config import ApplicationConfig
 from pandas import options
 from IPython.display import display, HTML
 
@@ -156,7 +156,6 @@ from src.utils.date_time_functions import create_datetime_id
 # #### General Constants
 # [ToC](#ToC)
 
-# from src.global_constants import *  # Remember to import only the constants in use
 N_ROWS_TO_DISPLAY = 2
 FIGURE_SIZE_SETTING = {"autosize": False, "width": 2200, "height": 750}
 
@@ -225,7 +224,7 @@ print(Y)
 # [ToC](#ToC)
 
 print(PYTHON_CONFIG_NAME)
-print(Config().get_data().path.data)
+print(ApplicationConfig().get_data().path.data)
 print(ID)
 
 df = DataFrame(data=[[1, 2], [3, 4]], columns=["ONE", "TWO"])

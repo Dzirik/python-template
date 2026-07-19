@@ -14,7 +14,7 @@
 
 # config
 /make_config.mk
-/configurations/python_personal.conf
+/configurations/python_personal.toml
 
 # Notebooks files for projects
 /projects/**/*.ipynb
@@ -51,7 +51,11 @@
 /src/data/~$attributes.xlsm
 
 # pycharm
-/.idea/
+# Ignore the whole PyCharm project directory except the shared JSON Schema mapping, which is
+# version-controlled so every contributor gets .toml validation/autocomplete with no per-user setup
+# (see configurations/schemas/README.md).
+/.idea/*
+!/.idea/jsonSchemas.xml
 
 # support files
 ws.sh

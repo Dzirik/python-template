@@ -31,6 +31,8 @@ from src.utils.logger import Logger  # noqa: E402
 SCHEDULER_INTERVAL = 30.0
 HEARTBEAT_THRESHOLD = (SCHEDULER_INTERVAL * 2) * 1.5
 CONFIG_NAME_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
+# SYSTEMROOT is an OS builtin, not application config, so it is intentionally read directly here
+# rather than through Envs.
 SYSTEM_ROOT = Path(os.environ.get("SYSTEMROOT", r"C:\\Windows"))
 SYSTEM32_DIR = SYSTEM_ROOT / "System32"
 TASKLIST_EXE = str((SYSTEM32_DIR / "tasklist.exe").resolve())

@@ -87,7 +87,7 @@ except:
 
 from src.utils.logger import Logger
 from src.utils.envs import Envs
-from src.utils.config import Config
+from src.utils.application_config import ApplicationConfig
 from pandas import options
 from IPython.display import display, HTML
 
@@ -133,7 +133,6 @@ from src.data.attributes import Attributes, ATTRS_GROUPS_NAMES
 # #### General Constants
 # [ToC](#ToC)
 
-# from src.global_constants import *  # Remember to import only the constants in use
 N_ROWS_TO_DISPLAY = 2
 FIGURE_SIZE_SETTING = {"autosize": False, "width": 2200, "height": 750}
 

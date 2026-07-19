@@ -17,7 +17,7 @@ import jupytext
 import papermill
 
 from src.exceptions.development_exception import IncorrectValue
-from src.utils.config import Config
+from src.utils.application_config import ApplicationConfig
 from src.utils.date_time_functions import create_datetime_id
 from src.utils.envs import Envs
 from src.utils.timer import Timer
@@ -72,7 +72,7 @@ class NotebookExecutioner:
         if self._params.config_name != "None":
             envs = Envs()
             envs.set_config(self._params.config_name)
-        self._config = Config()
+        self._config = ApplicationConfig()
 
         if not self._config.get_data().param_ntb_execution.use_default:
             self._params = self._params._replace(notebook_path=self._config.get_data().param_ntb_execution.ntb_path)

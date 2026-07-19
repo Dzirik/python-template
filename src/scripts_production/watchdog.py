@@ -28,6 +28,7 @@ sys.path += [str(_SCRIPT_DIR / ".."), str(_SCRIPT_DIR / "../..")]
 from src.configurations.watchdog_config import WatchdogConfig  # noqa: E402
 from src.configurations.watchdog_config_data import WorkerData  # noqa: E402
 from src.scripts_production.heartbeat import HealthcheckHeartbeat, HealthcheckHeartbeatConfig  # noqa: E402
+from src.utils.envs import Envs  # noqa: E402
 from src.utils.logger import Logger  # noqa: E402
 
 _ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -85,7 +86,7 @@ def resolve_ping_url(healthcheck_url_key: str) -> str | None:
     :param healthcheck_url_key: str. Key to match against.
     :return: str | None. The matching ping URL, or None if not found.
     """
-    raw = os.getenv("HEALTHCHECK_PING_URL")
+    raw = Envs.get_healthcheck_ping_url()
     if not raw:
         return None
 

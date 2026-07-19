@@ -1,0 +1,16 @@
+name = "watchdog_cmd_02"
+healthcheck_url_key = "watchdog_cmd_02"
+
+[[workers]]
+name = "ALTER_cmd_01-01"
+script = "run_cmd_status_print_01.py"
+args = ["--delay", "2", "--hello", "Gutten Tag", "--minute", "5"]
+timeout = 150.0
+healthcheck_url_key = "ALTER_cmd_01-01"
+
+[[workers]]
+name = "ALTER_cmd_02-01"
+script = "run_cmd_status_print_02.py"
+args = ["--delay", "1", "--pozdrav", "Cus"]
+timeout = 90.0
+healthcheck_url_key = "ALTER_cmd_02-01"

@@ -42,19 +42,19 @@ create-venv: clear-console
 	@python ./src/utils/make_print_documentation.py create-venv
 	@echo "Setting up repository files..."
 	@test -f make_config.mk && echo "make_config.mk already exists" || cp make_config_template.mk make_config.mk
-	@if [ ! -f ./configurations/python_personal.conf ]; then \
-		cp ./configurations/python_repo.conf ./configurations/python_personal.conf; \
-		python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"'))"; \
+	@if [ ! -f ./configurations/python_personal.toml ]; then \
+		cp ./configurations/python_repo.toml ./configurations/python_personal.toml; \
+		python -c "from pathlib import Path; p=Path('configurations/python_personal.toml'); p.write_text(p.read_text().replace('name = \"python_repo\"','name = \"python_personal\"'))"; \
 	else \
-		echo "python_personal.conf already exists"; \
+		echo "python_personal.toml already exists"; \
 	fi
 	@test -f .env && echo ".env already exists" || cp .env.example .env
 	@test -f notebooks/raw/playground_notebook.py || cp notebooks/template/template_notebook_final.py notebooks/raw/playground_notebook.py
 	@echo "Repository setup completed!"
 	@echo ""
-	@echo "Creating virtual environment with Python 3.12..."
-	uv python install 3.12
-	uv python pin 3.12
+	@echo "Creating virtual environment with Python 3.13..."
+	uv python install 3.13
+	uv python pin 3.13
 	test -d $(UV_ENV_DIR) || uv venv $(UV_ENV_DIR)
 	uv sync --all-extras --no-install-project
 	@echo ""
@@ -65,19 +65,19 @@ create-venv-linux: clear-console
 	@python ./src/utils/make_print_documentation.py create-venv-linux
 	@echo "Setting up repository files..."
 	@test -f make_config.mk && echo "make_config.mk already exists" || cp make_config_template.mk make_config.mk
-	@if [ ! -f ./configurations/python_personal.conf ]; then \
-		cp ./configurations/python_repo.conf ./configurations/python_personal.conf; \
-		python -c "from pathlib import Path; p=Path('configurations/python_personal.conf'); p.write_text(p.read_text().replace('name: \"python_repo\"','name: \"python_personal\"'))"; \
+	@if [ ! -f ./configurations/python_personal.toml ]; then \
+		cp ./configurations/python_repo.toml ./configurations/python_personal.toml; \
+		python -c "from pathlib import Path; p=Path('configurations/python_personal.toml'); p.write_text(p.read_text().replace('name = \"python_repo\"','name = \"python_personal\"'))"; \
 	else \
-		echo "python_personal.conf already exists"; \
+		echo "python_personal.toml already exists"; \
 	fi
 	@test -f .env && echo ".env already exists" || cp .env.example .env
 	@test -f notebooks/raw/playground_notebook.py || cp notebooks/template/template_notebook_final.py notebooks/raw/playground_notebook.py
 	@echo "Repository setup completed!"
 	@echo ""
-	@echo "Creating virtual environment with Python 3.12..."
-	uv python install 3.12
-	uv python pin 3.12
+	@echo "Creating virtual environment with Python 3.13..."
+	uv python install 3.13
+	uv python pin 3.13
 	test -d $(UV_ENV_DIR) || uv venv $(UV_ENV_DIR)
 	uv sync --all-extras --no-install-project
 	@echo ""
@@ -250,14 +250,7 @@ security-check-no-clear:
 	@uv run --no-project python ./src/utils/make_print_documentation.py security-check-no-clear
 	@uv run --no-project bandit -r src -c pyproject.toml
 	@echo ""
-	@uv run --no-project pip-audit \
-		--ignore-vuln PYSEC-2023-157 \
-		--ignore-vuln PYSEC-2023-155 \
-		--ignore-vuln PYSEC-2023-272 \
-		--ignore-vuln PYSEC-2024-165 \
-		--ignore-vuln PYSEC-2023-23 \
-		--ignore-vuln PYSEC-2023-24 \
-		--ignore-vuln GHSA-pjjw-68hj-v9mw
+	@uv run --no-project pip-audit
 	@echo ""
 	@uv run --no-project python ./src/utils/print_success.py success "✅ Success: no security issues found"
 

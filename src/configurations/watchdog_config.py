@@ -1,25 +1,26 @@
 """
-Pipelines configuration file.
+Watchdog configuration file.
 """
 
 from src.configurations.watchdog_config_data import WatchdogConfigData
-from src.utils.base_config import BaseConfig
+from src.utils.base_component_config import BaseComponentConfig
 
 
-class WatchdogConfig(BaseConfig[WatchdogConfigData]):
+class WatchdogConfig(BaseComponentConfig[WatchdogConfigData]):
     """
-    Pipelines configuration file.
+    Configures the watchdog process supervisor from a HOCON file under configurations/watchdogs/.
     """
 
     def __init__(self, config_file_name: str) -> None:
         """
         :param config_file_name: str. Name of the file in configuration folder without that .conf part.
         """
-        BaseConfig.__init__(
+        BaseComponentConfig.__init__(
             self,
-            class_name="ColumnsGroupingPipelineConfig",
+            class_name="WatchdogConfig",
             config_file_name=config_file_name,
             data_structure=WatchdogConfigData,
+            config_subfolder="watchdogs",
         )
 
 

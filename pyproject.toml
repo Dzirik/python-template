@@ -3,7 +3,7 @@ name = "python-template"
 version = "1.0.0"
 description = "Minimal Python repository template with logger, config, exceptions, transformers, and testing infrastructure"
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.13,<3.15"
 license = {text = "MIT"}
 authors = [
     {name = "Jiri Palek", email = "jiri.palek@gmail.com"}
@@ -14,80 +14,64 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 dependencies = [
     "python-dotenv>=1.2.2",
-    "gitpython>=3.1.50",
-    "pyhocon>=0.3.60",
-    "typedload>=2.28",
-    "pandas>=2.1.4",
-    "numpy>=1.24.0",
-    "scikit-learn>=1.3.0",
-    # Jupyter packages - Notebook 7.x (JupyterLab-based) with jupytext support
-    # Upgraded Feb 2026: notebook 6.x → 7.x, ipykernel 6.x → 7.x, jupytext 1.14 → 1.19
-    "jupyter>=1.0.0",
-    "jupyter-client>=8.0.0",
-    "jupyter-console>=6.6.0",
-    "jupyter-core>=5.7.0",
+    "gitpython>=3.1.51",
+    "typedload>=2.41",
+    "pandas>=3.0.3",
+    "numpy>=2.5.1",
+    "scikit-learn>=1.9.0",
+    # Jupyter packages - Notebook 7.x (JupyterLab-based) with jupytext support.
+    # Trimmed for the 3.13/3.14 relock: transitive Jupyter deps (traitlets, parso, jedi,
+    # pyzmq, tornado, mistune, pandocfilters, send2trash, nest-asyncio, decorator, qtconsole,
+    # qtpy, jupyter-core, jupyterlab-pygments, terminado, prompt-toolkit, pygments) are no
+    # longer pinned explicitly - uv.lock still resolves and pins them transitively.
+    "jupyter>=1.1.1",
+    "jupyter-client>=8.9.1",
+    "jupyter-console>=6.6.3",
     "jupyter_server>=2.20.0",  # Notebook 7.x requires jupyter_server 2.x
-    "notebook>=7.5.6",  # Notebook 7.5.2+ includes JupyterLab 4.5.2 with anchor fix (PR #18208)
-    "jupyterlab>=4.5.9",  # Required by Notebook 7; ≥4.5.2 fixes anchor navigation (PR #18208)
-    "nbclient>=0.10.0",
+    "notebook>=7.6.0",  # Notebook 7.5.2+ includes JupyterLab 4.5.2 with anchor fix (PR #18208)
+    "jupyterlab>=4.6.1",  # Required by Notebook 7; ≥4.5.2 fixes anchor navigation (PR #18208)
+    "nbclient>=0.11.0",
     "nbconvert>=7.17.1",
-    "nbformat>=5.10.0",
-    "jupytext>=1.19.0",  # Latest with full Notebook 7/JupyterLab 4 support
-    "papermill>=2.6.0",
-    "jupyterlab-pygments>=0.3.0",
-    "ipykernel>=7.0.0",  # Major upgrade with Python 3.10+ requirement
-    "ipython>=8.20.0",
-    "ipywidgets>=8.1.0",
-    "traitlets>=5.14.0",
-    "qtconsole>=5.5.0",
-    "qtpy>=2.4.0",
-    "pandocfilters>=1.5.0",
-    "mistune>=3.2.1",
-    "pygments>=2.20.0",
-    "pyzmq>=26.0.0",
-    "tornado>=6.5.7",
-    "terminado>=0.18.0",
-    "send2trash>=1.8.0",
-    "nest-asyncio>=1.6.0",
-    "prompt-toolkit>=3.0.43",
-    "decorator>=5.1.1",
-    "jedi>=0.19.0",
-    "parso>=0.8.3",
-    "debugpy>=1.8.0",
-    "types-requests",
-    "openpyxl",
-    "marimo[recommended]>=0.23.9",
-    "plotly>=6.0.0",
-    "termcolor",
+    "nbformat>=5.10.4",
+    "jupytext>=1.19.4",  # Latest with full Notebook 7/JupyterLab 4 support
+    "papermill>=2.7.0",
+    "ipykernel>=7.3.0",  # Major upgrade with Python 3.10+ requirement
+    "ipython>=9.15.0",
+    "ipywidgets>=8.1.8",
+    "debugpy>=1.8.21",
+    "types-requests>=2.33.0.20260712",
+    "openpyxl>=3.1.5",
+    "marimo[recommended]>=0.23.14",
+    "plotly>=6.9.0",
+    "termcolor>=3.3.0",
     "aiohttp>=3.14.1",
-    "requests>=2.33.0",
+    "requests>=2.34.2",
     "urllib3>=2.7.0",
-    "idna>=3.15",
+    "idna>=3.18",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=9.0.3",
-    "pytest-cov>=4.1.0",
-    "mypy>=1.7.0",
-    "ruff>=0.8.0",
-    "bandit[toml]>=1.7.0",
-    "pip-audit>=2.6.0",
-    "beautifulsoup4>=4.12.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "mypy>=2.3.0",
+    "ruff>=0.15.21",
+    "bandit[toml]>=1.9.4",
+    "pip-audit>=2.10.1",
+    "beautifulsoup4>=4.15.0",
 ]
 
 # Windows-specific dependencies
 windows = [
-    "pywin32>=311; sys_platform == 'win32'",
-    "pywinpty>=3.0.3; sys_platform == 'win32'",
+    "pywin32>=312; sys_platform == 'win32'",
+    "pywinpty>=3.0.5; sys_platform == 'win32'",
 ]
 
 [build-system]
@@ -98,13 +82,13 @@ build-backend = "hatchling.build"
 packages = ["src"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 config_file = "mypy.ini"
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = [
@@ -173,12 +157,6 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-]
-
-# Suppress third-party library deprecation warnings
-filterwarnings = [
-    "ignore::DeprecationWarning:pyhocon.*",
-    "ignore::pyparsing.exceptions.PyparsingDeprecationWarning",
 ]
 
 [tool.coverage.run]

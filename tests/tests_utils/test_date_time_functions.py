@@ -22,7 +22,7 @@ DATES_STRING = ["2000-01-01-01-01-01", "1990-09-16-12-59-59", "2005-12-12-23-59-
 ADD_ZEROS_TEST_CASES = [(1, 10, "1"), (10, 10, "0"), (5, 100, "05"), (1, 1000, "001"), (18, 10, "8")]
 
 
-@pytest.mark.parametrize("date_datetime, date_string_right", zip(DATES_DATETIME, DATES_STRING, strict=True))
+@pytest.mark.parametrize("date_datetime, date_string_right", list(zip(DATES_DATETIME, DATES_STRING, strict=True)))
 def test_datetime_to_string_conversion(date_datetime: datetime, date_string_right: str) -> None:
     """
     Tests datetime to string conversion.
@@ -33,7 +33,7 @@ def test_datetime_to_string_conversion(date_datetime: datetime, date_string_righ
     assert date_string == date_string_right
 
 
-@pytest.mark.parametrize("date_string, date_datetime_right", zip(DATES_STRING, DATES_DATETIME, strict=True))
+@pytest.mark.parametrize("date_string, date_datetime_right", list(zip(DATES_STRING, DATES_DATETIME, strict=True)))
 def test_convert_string_date_to_datetime(date_string: str, date_datetime_right: datetime) -> None:
     """
     Tests string to datetime conversion.

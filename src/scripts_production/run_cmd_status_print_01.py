@@ -73,7 +73,6 @@ def main() -> None:
 
     try:
         while True:
-            # log_and_print
             print(
                 f"{datetime.now()}: Worker={args.worker_name} PID={os.getpid():06d} delay={args.delay} hello={args.hello}"
             )

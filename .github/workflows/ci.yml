@@ -13,39 +13,31 @@ on:
 jobs:
   quality-checks:
     name: Run All Quality Checks
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.13", "3.14"]
+
+    env:
+      EXPECTED_PYTHON: ${{ matrix.python-version }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          uv sync --extra dev
+      - name: Install make (Windows)
+        if: runner.os == 'Windows'
+        run: choco install make
 
       - name: Run all quality checks with security (make all-secure)
+        shell: bash
         run: |
           make all-secure
-
-      - name: Upload coverage reports (if available)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-py${{ matrix.python-version }}
-          path: coverage/
-          if-no-files-found: ignore
-
