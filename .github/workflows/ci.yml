@@ -40,6 +40,14 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --no-install-project
 
+      - name: Set up gitignored config files
+        shell: bash
+        run: |
+          if [ ! -f ./configurations/python_personal.toml ]; then
+            cp ./configurations/python_repo.toml ./configurations/python_personal.toml
+            uv run --no-project python -c "from pathlib import Path; p = Path('configurations/python_personal.toml'); p.write_text(p.read_text().replace('name = \"python_repo\"', 'name = \"python_personal\"'))"
+          fi
+
       - name: Run all quality checks with security (make all-secure)
         shell: bash
         run: |
