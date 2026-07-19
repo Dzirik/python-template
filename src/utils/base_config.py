@@ -3,7 +3,7 @@ Class for general interface for configs.
 """
 
 from pathlib import Path
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Protocol
 
 import typedload
 from pyhocon import ConfigFactory
@@ -19,22 +19,19 @@ class _NamedTupleLike(Protocol):
     def _asdict(self) -> dict[str, Any]: ...
 
 
-_T = TypeVar("_T", bound=_NamedTupleLike)
-
-
-class BaseConfig(MetaClass, Generic[_T]):
+class BaseConfig[T: _NamedTupleLike](MetaClass):
     """
     Parent class for general interface for configs.
 
     Only src/utils/config is different, but interface is the same.
     """
 
-    def __init__(self, class_name: str, config_file_name: str, data_structure: type[_T]) -> None:
+    def __init__(self, class_name: str, config_file_name: str, data_structure: type[T]) -> None:
         MetaClass.__init__(self, class_type=CONFIG_TYPE_NAME, class_name=class_name)
 
         self._config_file_name = config_file_name
-        self._data_structure: type[_T] = data_structure
-        self._data: _T
+        self._data_structure: type[T] = data_structure
+        self._data: T
 
         self.parse_config()
 
@@ -51,10 +48,10 @@ class BaseConfig(MetaClass, Generic[_T]):
 
         Logger().debug(f"{self.get_class_name} was created from {self._config_file_name}.conf file.")
 
-    def get_data(self) -> _T:
+    def get_data(self) -> T:
         """
         Returns the config's named tuple.
-        :return: _T. Named tuple with data.
+        :return: T. Named tuple with data.
         """
         return self._data
 
