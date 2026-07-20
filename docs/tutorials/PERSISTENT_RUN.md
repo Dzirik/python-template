@@ -4,8 +4,10 @@ This guide explains how to make `watchdog.py` start automatically when you log i
 Windows and restart itself automatically if it ever crashes — with no developer tools
 required after the initial setup.
 
-> **Technical audit:** For a detailed production-readiness assessment of the supervision
-> system, see [`docs/reports/AUDIT.md`](../reports/AUDIT.md).
+> **Supervision semantics:** For the design decisions behind the graceful-stop signal
+> contract, the crash-loop backoff policy, and the atomic single-instance lock described
+> in this guide, see
+> [ADR 0007](../adr/0007-watchdog-supervision-semantics.md).
 
 ---
 
@@ -31,9 +33,9 @@ The system uses a **three-layer supervision hierarchy**:
 Windows Task Scheduler  (every 30 s)
   └── checker.py --config-name watchdog_cmd_01    ← ephemeral; checks watchdog health
         └── watchdog.py --config-name watchdog_cmd_01  ← long-running daemon
-              ├── cmd_status_print_01.py (cmd_01-01)   ← worker process
-              ├── cmd_status_print_01.py (cmd_01-02)   ← worker process
-              └── cmd_status_print_02.py (cmd_02-01)   ← worker process
+              ├── run_cmd_status_print_01.py (cmd_01-01)   ← worker process
+              ├── run_cmd_status_print_01.py (cmd_01-02)   ← worker process
+              └── run_cmd_status_print_02.py (cmd_02-01)   ← worker process
 ```
 
 - **Windows Task Scheduler** invokes `checker.py` every 30 seconds. The checker is an
@@ -42,20 +44,22 @@ Windows Task Scheduler  (every 30 s)
   long-running monitor to crash.
 - **`checker.py`** reads the watchdog's `.pid` and `.hb` files. It verifies that the PID
   is alive **and** that the process command line matches the expected `watchdog.py`
-  instance (via WMIC), guarding against PID recycling on Windows. If the watchdog is
-  unhealthy, `checker.py` performs a [4-step recovery](#71-recovery-logic-checkerpy).
+  instance (via a PowerShell `Get-CimInstance Win32_Process` query, not the deprecated
+  `wmic` CLI), guarding against PID recycling on Windows. If the watchdog is unhealthy,
+  `checker.py` performs a [4-step recovery](#71-recovery-logic-checkerpy).
 - **`watchdog.py`** is the long-running daemon that manages workers. It polls every
   `CHECK_INTERVAL` (30 s) for crashed or frozen workers and restarts them using a
-  [graceful shutdown](#72-graceful-worker-shutdown-watchdogpy) pattern.
+  [graceful shutdown](#73-graceful-worker-shutdown--signal-contract-watchdogpy) pattern,
+  per the signal contract in
+  [ADR 0007](../adr/0007-watchdog-supervision-semantics.md).
 - **`--config-name`** is a mandatory argument that selects the TOML configuration file
-  (e.g. `watchdog_cmd_01.toml`) defining which workers to manage, their scripts,
-  arguments, and heartbeat timeouts. Both `checker.py` and `watchdog.py` require it. See
-  [`docs/tutorials/CONF_TO_TOML.md`](CONF_TO_TOML.md) if you are migrating an older
-  `.conf`/HOCON profile.
+  (e.g. `watchdog_cmd_01.toml`, under `configurations/watchdogs/`) defining which workers
+  to manage, their scripts, arguments, and heartbeat timeouts. Both `checker.py` and
+  `watchdog.py` require it.
 - **Heartbeat and PID files** — each watchdog instance writes its files to an isolated
   `heartbeats_<config_name>/` folder (e.g. `heartbeats_watchdog_cmd_01/`) located
-  alongside `watchdog.py`. This allows multiple watchdog configurations to run side by
-  side without interfering.
+  alongside `watchdog.py` under `src/scripts_production/`. This allows multiple watchdog
+  configurations to run side by side without interfering.
 - **Worker subprocesses** receive a mandatory `--heartbeat-folder` argument pointing to
   the same directory, which they pass to `write_pid()` to store their own PID files in
   the correct location.
@@ -65,6 +69,11 @@ Windows Task Scheduler  (every 30 s)
   Windows Task Scheduler's default `C:\WINDOWS\system32`) without path errors. The
   **Start in** field in Task Scheduler is no longer functionally required but is retained
   as a best-practice convention.
+- **Single-instance guard** — on startup, `watchdog.py` acquires an exclusive,
+  non-blocking OS-level lock (`msvcrt.locking` on Windows, `fcntl.flock` on POSIX) on a
+  per-config lockfile; if another watchdog for the same `--config-name` is already
+  running, the new instance logs and exits immediately rather than racing the first one.
+  See [ADR 0007](../adr/0007-watchdog-supervision-semantics.md).
 
 ---
 
@@ -88,15 +97,15 @@ Before starting, confirm the following:
 This is the most important part of the configuration. Task Scheduler needs to know
 exactly which Python to use and where the script is. Using the wrong Python (e.g. a
 system-wide installation) will cause the task to fail because the required libraries
-(`winotify` and others) are only installed inside the project's virtual environment.
+are only installed inside the project's virtual environment.
 
 Replace `D:\TEMP\test` with your actual project path in all three fields below.
 
 | Field | Value |
 |---|---|
 | **Program / script** | `D:\TEMP\test\.venv\Scripts\python.exe` |
-| **Add arguments** | `-u D:\TEMP\test\src\scripts\watchdog.py --config-name watchdog_cmd_01` |
-| **Start in** | `D:\TEMP\test\src\scripts` |
+| **Add arguments** | `-u D:\TEMP\test\src\scripts_production\watchdog.py --config-name watchdog_cmd_01` |
+| **Start in** | `D:\TEMP\test\src\scripts_production` |
 
 **Why each value:**
 
@@ -113,8 +122,8 @@ Replace `D:\TEMP\test` with your actual project path in all three fields below.
   required for correct operation. It is retained as a best-practice default.
 
 > ⚠️ **Do not use `python` or `python.exe` alone in the Program/script field.** This
-> would use the system Python, which does not have `winotify` installed, and the task
-> will fail with `ModuleNotFoundError`.
+> would use the system Python, which does not have the project's dependencies installed,
+> and the task will fail with `ModuleNotFoundError`.
 
 ---
 
@@ -137,17 +146,17 @@ A dialog box with several tabs will open. Work through each tab below.
 
 ### General tab
 
-5. **Name:** Enter a descriptive name, e.g. `Watchdog – Windows Notifications`.
-6. **Description** *(optional)*: e.g. `Starts and supervises the notification watchdog process.`
+5. **Name:** Enter a descriptive name, e.g. `Watchdog – watchdog_cmd_01`.
+6. **Description** *(optional)*: e.g. `Starts and supervises the watchdog process.`
 7. **Security options:**
    - Select **Run only when user is logged on**.
 
    > ⚠️ **Do not select "Run whether user is logged in or not".** That option runs the
-   > process in Windows Session 0 — an invisible background session that is isolated
-   > from your desktop. Windows toast notifications are delivered to your desktop
-   > session and will be completely invisible when the task runs in Session 0. Always
-   > use "Run only when user is logged on" for any task that needs to show
-   > notifications.
+   > process in Windows Session 0 — an invisible background session isolated from your
+   > desktop. Diagnosing the watchdog and its workers (e.g. confirming `python.exe`
+   > processes in Task Manager, or attaching a console) is much harder in Session 0.
+   > Always use "Run only when user is logged on" unless you have a specific reason to
+   > run headless.
 
 8. Tick **Run with highest privileges**.
 
@@ -167,8 +176,8 @@ A dialog box with several tabs will open. Work through each tab below.
 16. **Action:** Leave as `Start a program`.
 17. Fill in the three fields with the values from [Section 3](#3-the-action-tab--exact-values):
     - **Program / script:** `D:\TEMP\test\.venv\Scripts\python.exe`
-    - **Add arguments:** `-u D:\TEMP\test\src\scripts\watchdog.py --config-name watchdog_cmd_01`
-    - **Start in:** `D:\TEMP\test\src\scripts`
+    - **Add arguments:** `-u D:\TEMP\test\src\scripts_production\watchdog.py --config-name watchdog_cmd_01`
+    - **Start in:** `D:\TEMP\test\src\scripts_production`
 18. Click **OK**.
 
 ### Conditions tab
@@ -257,13 +266,13 @@ Open a **Command Prompt** (search for `cmd` in the Start menu) and run the exact
 command that Task Scheduler will use, with your actual project path substituted in:
 
 ```
-"D:\TEMP\test\.venv\Scripts\python.exe" -u "D:\TEMP\test\src\scripts\watchdog.py" --config-name watchdog_cmd_01
+"D:\TEMP\test\.venv\Scripts\python.exe" -u "D:\TEMP\test\src\scripts_production\watchdog.py" --config-name watchdog_cmd_01
 ```
 
 If this command fails, Task Scheduler will also fail. Fix any errors shown in the
 terminal window before continuing.
 
-### The task runs but no notifications appear
+### The task runs but nothing seems to happen
 
 This almost always means the task is running under the wrong session option. Open the
 task Properties, go to the **General** tab, and confirm **Run only when user is logged
@@ -298,39 +307,75 @@ recycled to a different process, or heartbeat stale beyond the threshold), it ex
    kernel time to fully terminate the killed processes, release file handles on `.pid`
    and `.hb` files, and reclaim PID numbers. Without this delay, the new watchdog
    instance could collide with zombie entries or fail to acquire file handles.
-4. **Restart the watchdog.** Launches a new `watchdog.py` process via `subprocess.Popen`
-   with the same `--config-name`, then exits.
+4. **Restart the watchdog.** Spawns a new `watchdog.py` process via a PowerShell
+   `Invoke-CimMethod -ClassName Win32_Process -MethodName Create` call (**not**
+   `subprocess.Popen`). This is deliberate: Task Scheduler wraps `checker.py` in a Windows
+   Job Object, and any child started with `subprocess.Popen` inherits that Job Object —
+   so when `checker.py` exits, Task Scheduler would kill the freshly-spawned watchdog
+   along with it. Asking `WmiPrvSE.exe` to create the process (which is not part of that
+   Job Object) keeps the new watchdog fully independent.
 
-### 7.2 PID Recycling Mitigation (`checker.py`)
+### 7.2 Watchdog Health Verification (`checker.py`)
 
-A simple `os.kill(pid, 0)` check only confirms that *some* process with that PID exists.
-On Windows, PIDs are aggressively recycled — after a reboot or crash, an unrelated
-process may inherit the old PID, causing the checker to incorrectly report the watchdog
-as "healthy".
+`checker.py` requires **all three** of the following to consider the watchdog healthy:
 
-To prevent this, `checker.py` performs a two-layer verification:
+1. **PID file present and valid** — `watchdog.pid` exists and parses to a PID.
+2. **Process liveness** — the PID belongs to a running process, checked via
+   `tasklist /FI "PID eq {pid}" /NH` (not `os.kill(pid, 0)`, which on Windows can raise a
+   misleading `OSError`/`PermissionError` for processes spawned across session
+   boundaries, e.g. by `WmiPrvSE.exe`). This check is **fail-safe**: any exception while
+   querying is treated as "alive" so a transient `tasklist` error never triggers an
+   unnecessary kill of a healthy watchdog tree.
+3. **Fresh heartbeat** — `watchdog.hb` exists and was modified within
+   `HEARTBEAT_THRESHOLD` seconds.
 
-1. **Existence check:** `os.kill(pid, 0)` — fast short-circuit for dead PIDs.
-2. **Identity check:** Queries `wmic process where ProcessId={pid} get CommandLine` and
-   confirms the command line contains both `watchdog.py` and the expected
-   `--config-name` value.
+As a secondary guard against PID recycling, `checker.py` also queries the process's
+command line via PowerShell's `Get-CimInstance Win32_Process` (**not** the deprecated
+`wmic` CLI) and confirms it contains both `watchdog.py` and the expected `--config-name`.
+If that CIM query fails or is unavailable, the checker falls back to accepting the
+PID-liveness-plus-fresh-heartbeat result rather than triggering a false recovery.
 
-If WMIC fails (transient WMI service error), the function **falls back** to the basic
-alive check and logs a warning, rather than triggering a false recovery.
+### 7.3 Graceful Worker Shutdown & Signal Contract (`watchdog.py`)
 
-### 7.3 Graceful Worker Shutdown (`watchdog.py`)
+Per [ADR 0007](../adr/0007-watchdog-supervision-semantics.md), graceful stop is a real
+signal contract, not an illusion:
 
-When the watchdog needs to stop a worker (frozen detection or shutdown signal), it uses a
-two-phase escalation pattern:
+1. **Workers are started in their own process group** — `subprocess.Popen(...,
+   creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)` on Windows — specifically so a
+   later signal can target the worker alone without also signalling the watchdog.
+2. **Graceful phase:** to stop a worker, the watchdog sends `CTRL_BREAK_EVENT` to that
+   process group on Windows (`os.kill(process.pid, signal.CTRL_BREAK_EVENT)`) or
+   `SIGTERM` on POSIX, then waits up to `STOP_GRACE_PERIOD` (5 s) via
+   `process.wait(timeout=...)`.
+3. **Forced phase:** if the worker has not exited within the grace window, the watchdog
+   catches `subprocess.TimeoutExpired` and calls `process.kill()` (`TerminateProcess` on
+   Windows — cannot be caught by the worker), followed by `process.wait()`.
 
-1. **Graceful phase:** `process.terminate()` sends `CTRL_BREAK_EVENT` on Windows,
-   allowing the worker to execute `finally` blocks (e.g. `hc_heartbeat.stop()`, log
-   flushing). The watchdog then calls `process.wait(timeout=5)`.
-2. **Forced phase:** If the worker does not exit within 5 seconds, the watchdog catches
-   `subprocess.TimeoutExpired` and calls `process.kill()` (`TerminateProcess` — cannot
-   be caught by the worker), followed by `process.wait()` to collect the exit status.
+**This is a contract every worker must honour.** The worker examples
+(`run_cmd_status_print_01.py` / `run_cmd_status_print_02.py`) install a `SIGBREAK`
+(Windows) / `SIGTERM` (POSIX) handler that sets a stop flag; the main loop checks the
+flag, writes a final heartbeat, stops its healthcheck thread, and exits cleanly. A worker
+that ignores the signal is simply hard-killed after the grace window, same as before.
 
-This ensures workers have a chance to clean up before being forcefully terminated.
+### 7.4 Crash-Loop Backoff (`watchdog.py`)
+
+A worker that crashes repeatedly is **never permanently abandoned**, but restarts back
+off. The restart delay is `min(BACKOFF_BASE * 2**consecutive_failures, BACKOFF_CAP)` —
+2 s, 4 s, 8 s, … capped at 300 s. If a worker restarts `CRASH_LOOP_COUNT` (5) times or
+more within a trailing `CRASH_LOOP_WINDOW` (300 s), the watchdog logs a `CRITICAL`
+message noting that worker's healthcheck ping will lapse (so healthchecks.io can alert on
+it) — but keeps retrying at the capped interval so a transient cause (a full disk, a
+locked file) self-heals once it clears. Other workers' backoff state is independent.
+
+### 7.5 Single-Instance Lock (`watchdog.py`)
+
+On startup, the watchdog acquires an exclusive, non-blocking OS-level lock on a
+per-config lockfile (`msvcrt.locking(LK_NBLCK)` on Windows, `fcntl.flock(LOCK_EX |
+LOCK_NB)` on POSIX), held for the process's lifetime. Because the OS call fails
+immediately rather than blocking, two watchdogs started for the same `--config-name`
+near-simultaneously cannot both win the race — the loser logs and exits. This closes a
+gap that a PID-file-only check cannot: a PID file is written *after* startup, so two
+processes racing to start can both observe "no PID file yet" and both proceed.
 
 ---
 
@@ -372,7 +417,10 @@ appears in the watchdog's monitoring loop and startup sequence.
 | `HEARTBEAT_THRESHOLD` | 90 s | `checker.py` | Max allowed age of `watchdog.hb` before recovery. Computed as `(SCHEDULER_INTERVAL × 2) × 1.5` |
 | `CHECK_INTERVAL` | 30 s | `watchdog.py` | How often the watchdog polls workers for crashes / freezes |
 | `STARTUP_GRACE_PERIOD` | 5 s | `watchdog.py` | Delay after spawning workers, before the first monitoring poll |
-| `WATCHDOG_HEALTHCHECK_INTERVAL` | 60 s | `watchdog.py` | How often the watchdog pings Healthchecks.io |
+| `STOP_GRACE_PERIOD` | 5 s | `watchdog.py` | Grace window after the graceful-stop signal before falling back to `process.kill()` |
+| `WATCHDOG_HEALTHCHECK_INTERVAL` | 30 s | `watchdog.py` | How often the watchdog pings Healthchecks.io |
+| `BACKOFF_BASE` / `BACKOFF_CAP` | 2 s / 300 s | `watchdog.py` | Crash-loop restart backoff: `min(BACKOFF_BASE * 2**consecutive_failures, BACKOFF_CAP)` |
+| `CRASH_LOOP_COUNT` / `CRASH_LOOP_WINDOW` | 5 / 300 s | `watchdog.py` | Restarts within the window that trigger a `CRITICAL` crash-loop log |
 | Worker `timeout` | 90–360 s | `.toml` files | Per-worker heartbeat freshness threshold |
 | Worker `--delay` | 1–5 min | `.toml` files | Sleep duration between worker action cycles |
 

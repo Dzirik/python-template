@@ -11,7 +11,6 @@ import plotly.graph_objs as go
 from numpy import dtype, ndarray
 
 from src.visualisations.plotly_base import PlotlyBase
-from src.visualisations.visualisation_functions import hex_to_rgb
 
 
 class PlotlyHeatmap(PlotlyBase):
@@ -35,9 +34,6 @@ class PlotlyHeatmap(PlotlyBase):
             "seismic": "RdBu",  # Strong contrast
         }
 
-    # pylint: disable=arguments-differ
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-locals
     def plot(
         self,
         data: pd.DataFrame | ndarray[Any, dtype[Any]],
@@ -63,9 +59,10 @@ class PlotlyHeatmap(PlotlyBase):
         :param value_format: str. Formatting string for displayed values. Defaults to ".2f".
         :param line_width: float. Thickness of lines separating cells. Defaults to 0.5.
         :param colorbar_shrink: float. Scaling factor for colorbar size. Defaults to 0.8.
-        :param dashboard: bool. Whether to use in a dash application.
-        :return: Optional[go.Figure]. Returns None and displays the figure, or returns go.Figure
-                for use with Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         if isinstance(data, pd.DataFrame):
             z_data = data.to_numpy()
@@ -121,20 +118,11 @@ class PlotlyHeatmap(PlotlyBase):
                 "linewidth": line_width,
                 "linecolor": self._colors["line"][0],
             },
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
             "margin": {"l": 100, "r": 50, "t": 80, "b": 100},
         }
 
         return self._plot_single_figure(trace=trace, layout=layout, dashboard=dashboard)
-
-    # pylint: enable=arguments-differ
-    # pylint: enable=too-many-arguments
-    # pylint: enable=too-many-locals
 
     def plot_correlation_matrix(
         self,
@@ -148,9 +136,10 @@ class PlotlyHeatmap(PlotlyBase):
         :param corr_matrix: Union[pd.DataFrame, ndarray]. Correlation matrix for visualization.
         :param title: str. Chart title. Defaults to "Correlation Matrix".
         :param colorscale: str. Heatmap color palette. Defaults to "coolwarm".
-        :param dashboard: bool. Whether to use in a dash application.
-        :return: Optional[go.Figure]. Returns None and displays the figure, or returns go.Figure
-                for use with Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         return self.plot(
             data=corr_matrix,

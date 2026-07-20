@@ -2,9 +2,12 @@
 Tests for helper functions.
 """
 
+from pathlib import Path
+
 import pytest
 
-from src.utils.helper_functions import print_in_color
+from src.utils import helper_functions
+from src.utils.helper_functions import get_git_branch, print_in_color
 
 
 def test_print_in_color_plain_message(capsys: pytest.CaptureFixture[str]) -> None:
@@ -41,3 +44,41 @@ def test_print_in_color_color_none_plain_prints(capsys: pytest.CaptureFixture[st
     print_in_color("none color message", color=None)
     captured = capsys.readouterr()
     assert captured.out == "none color message\n"
+
+
+def test_get_git_branch_parses_ref_head(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Tests that get_git_branch parses a standard "ref: refs/heads/<branch>" HEAD file and returns the branch name.
+    """
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "HEAD").write_text("ref: refs/heads/feature/my-branch\n", encoding="utf-8")
+
+    monkeypatch.setattr(helper_functions, "__file__", str(tmp_path / "helper_functions.py"))
+
+    assert get_git_branch() == "feature/my-branch"
+
+
+def test_get_git_branch_detached_head_returns_unknown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Tests that get_git_branch falls back to "unknown" for a detached HEAD (a raw commit SHA, no ref line).
+    """
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "HEAD").write_text("a" * 40 + "\n", encoding="utf-8")
+
+    monkeypatch.setattr(helper_functions, "__file__", str(tmp_path / "helper_functions.py"))
+
+    assert get_git_branch() == "unknown"
+
+
+def test_get_git_branch_missing_git_dir_returns_unknown(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Tests that get_git_branch falls back to "unknown" when no .git directory is found in any parent directory.
+    """
+    isolated = tmp_path / "isolated"
+    isolated.mkdir()
+
+    monkeypatch.setattr(helper_functions, "__file__", str(isolated / "helper_functions.py"))
+
+    assert get_git_branch() == "unknown"

@@ -1,5 +1,5 @@
 """
-Visualizer
+Time series with event markers visualisation module.
 """
 
 from typing import Any
@@ -19,8 +19,6 @@ class PlotlyTimeSeriesEvents(PlotlyTimeSeriesBase):
     def __init__(self) -> None:
         PlotlyTimeSeriesBase.__init__(self, opacity=0.9)
 
-    # pylint: disable=too-many-arguments
-    # pylint: disable=arguments-differ
     def plot(
         self,
         series: list[Series],
@@ -46,10 +44,10 @@ class PlotlyTimeSeriesEvents(PlotlyTimeSeriesBase):
                                              time series.
         :param plot_title: str. Title of the plot.
         :param y_title: Optional[str]. Y axis caption.
-        :param dashboard: bool. If False, the method will create a plot. If True, it will return the figure dictionary
-            for dash.
-        :return: Optional[go.Figure]. Either it plots by using self._plot_single_figure (and thus it returns None) or
-        returns the created go.Figure to be plotted with Dash's dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         traces: list[Any] = []
         traces = traces + self._create_time_series_traces(series, series_names, series_obs_names, fill_areas=False)
@@ -58,6 +56,3 @@ class PlotlyTimeSeriesEvents(PlotlyTimeSeriesBase):
         layout = self._create_layout(plot_title, y_title)
 
         return self._plot_single_figure(trace=traces, layout=layout, dashboard=dashboard)
-
-    # pylint: enable=too-many-arguments
-    # pylint: enable=arguments-differ

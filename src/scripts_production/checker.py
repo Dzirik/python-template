@@ -31,6 +31,10 @@ from src.utils.logger import Logger  # noqa: E402
 SCHEDULER_INTERVAL = 30.0
 HEARTBEAT_THRESHOLD = (SCHEDULER_INTERVAL * 2) * 1.5
 CONFIG_NAME_PATTERN = re.compile(r"[A-Za-z0-9_-]+")
+# Cap for the WMI respawn log (watchdog_{config}_wmi.log), matching the RotatingFileHandler size
+# used elsewhere in this system (see _add_script_file_handler).
+WMI_LOG_MAX_BYTES = 5_242_880
+KILL_TIMEOUT_SECONDS = 10
 # SYSTEMROOT is an OS builtin, not application config, so it is intentionally read directly here
 # rather than through Envs.
 SYSTEM_ROOT = Path(os.environ.get("SYSTEMROOT", r"C:\\Windows"))
@@ -81,7 +85,7 @@ def parse_args() -> argparse.Namespace:
         "--config-name",
         required=True,
         type=str,
-        help="Name of the watchdog configuration file (without .conf extension).",
+        help="Name of the watchdog configuration file (without .toml extension).",
     )
     args = parser.parse_args()
     if not args.config_name.strip():
@@ -108,8 +112,15 @@ def is_process_alive(pid: int) -> bool:
     queries the Windows kernel process table directly and works
     regardless of session boundaries or security context.
 
+    **Fail-safe on error.** Any exception raised while querying (a
+    ``tasklist`` timeout, a transient subprocess failure, etc.) is treated
+    as "alive" rather than "dead". A false "dead" verdict here would let
+    :func:`recover_watchdog` ``taskkill /F`` a perfectly healthy watchdog
+    tree over a transient error; a false "alive" verdict merely defers
+    recovery to the next check cycle.
+
     :param pid: int. Process ID to check.
-    :return: bool. True if process is alive, False otherwise.
+    :return: bool. True if the process is alive, or if liveness could not be determined.
     """
     try:
         result = subprocess.run(  # noqa: S603  # nosec B603
@@ -126,8 +137,9 @@ def is_process_alive(pid: int) -> bool:
         # We check for the PID as a substring in the output.
         return str(pid) in result.stdout
     except Exception:
-        # Timeout or other failure — assume not alive to be safe.
-        return False
+        # Timeout or other failure — fail safe and assume alive so a transient error never
+        # triggers an unnecessary kill of a healthy watchdog tree.
+        return True
 
 
 def _get_process_cmdline(pid: int) -> str | None:
@@ -246,14 +258,50 @@ def kill_process(pid: int) -> None:
     """
     Force-terminate a process and its children via taskkill (Windows).
 
+    A ``timeout`` bounds the ``taskkill`` call so a hung kill (e.g. against an unresponsive
+    process tree) can never block this ephemeral, Task-Scheduler-invoked checker indefinitely.
+    A timeout is logged and swallowed rather than propagated - the caller does not depend on
+    kill_process succeeding synchronously, since a failed kill simply leaves the target for the
+    next checker run to retry.
+
     :param pid: int. Process ID to kill.
     :return: None.
     """
-    subprocess.run(  # noqa: S603  # nosec B603
-        [TASKKILL_EXE, "/PID", str(pid), "/T", "/F"],
-        capture_output=True,
-        check=False,
-    )
+    try:
+        subprocess.run(  # noqa: S603  # nosec B603
+            [TASKKILL_EXE, "/PID", str(pid), "/T", "/F"],
+            capture_output=True,
+            check=False,
+            timeout=KILL_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        Logger().warning(f"taskkill for PID {pid} timed out after {KILL_TIMEOUT_SECONDS}s; leaving for next check.")
+
+
+def _cap_wmi_log(log_path: Path, max_bytes: int = WMI_LOG_MAX_BYTES) -> None:
+    """
+    Caps the size of the WMI respawn log so the ``cmd.exe >>`` redirect appended by
+    :func:`_spawn_via_wmi` on every respawn can never grow unbounded.
+
+    A missing log_path is a no-op - there is nothing to cap yet. A log_path at or under
+    max_bytes is left untouched. A log_path over max_bytes is rotated: any existing ``.1``
+    backup is discarded and replaced by the current file, then log_path itself no longer exists,
+    so the next WMI spawn's ``>>`` redirect starts a fresh file (``>>`` creates the file if it is
+    missing).
+
+    :param log_path: Path. Path to the watchdog_{config}_wmi.log file.
+    :param max_bytes: int. Maximum size in bytes before the log is rotated. Default is
+        WMI_LOG_MAX_BYTES (5 MB).
+    :return: None.
+    """
+    if not log_path.exists():
+        return
+    if log_path.stat().st_size <= max_bytes:
+        return
+
+    backup_path = log_path.with_name(log_path.name + ".1")
+    backup_path.unlink(missing_ok=True)
+    log_path.replace(backup_path)
 
 
 def _spawn_via_wmi(config_name: str) -> None:
@@ -295,7 +343,9 @@ def _spawn_via_wmi(config_name: str) -> None:
 
     # Ensure the logs directory exists for the redirected output.
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    wmi_log = str((LOGS_DIR / f"watchdog_{config_name}_wmi.log").resolve())
+    wmi_log_path = (LOGS_DIR / f"watchdog_{config_name}_wmi.log").resolve()
+    _cap_wmi_log(wmi_log_path)
+    wmi_log = str(wmi_log_path)
 
     # Wrap in cmd.exe /c with I/O redirection so that the Python
     # process has valid stdout/stderr handles (the log file).

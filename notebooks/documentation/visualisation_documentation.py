@@ -110,7 +110,7 @@ ADDAPT_WIDTH = False
 # #### Overall Behaviour Setting
 
 try:
-    from src.utils.notebook_support_functions import create_button, get_notebook_name
+    from src.utils.notebook_support_functions import get_notebook_name
     NOTEBOOK_NAME = get_notebook_name()
     SUPPORT_FUNCTIONS_READ = True
 except:

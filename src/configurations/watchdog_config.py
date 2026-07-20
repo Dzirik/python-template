@@ -8,12 +8,12 @@ from src.utils.base_component_config import BaseComponentConfig
 
 class WatchdogConfig(BaseComponentConfig[WatchdogConfigData]):
     """
-    Configures the watchdog process supervisor from a HOCON file under configurations/watchdogs/.
+    Configures the watchdog process supervisor from a TOML file under configurations/watchdogs/.
     """
 
     def __init__(self, config_file_name: str) -> None:
         """
-        :param config_file_name: str. Name of the file in configuration folder without that .conf part.
+        :param config_file_name: str. Name of the file in configuration folder without that .toml part.
         """
         BaseComponentConfig.__init__(
             self,

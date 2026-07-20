@@ -26,7 +26,7 @@ import os
 sys.path+=[os.path.join(os.getcwd(), ".."), os.path.join(os.getcwd(), "../..")] # one and two up
 # -
 
-from src.utils.notebook_support_functions import create_button, get_notebook_name
+from src.utils.notebook_support_functions import get_notebook_name
 from src.utils.logger import Logger
 from src.utils.envs import Envs
 from src.utils.application_config import ApplicationConfig
@@ -35,7 +35,6 @@ from IPython.display import display, HTML
 
 LOGGER_CONFIG_NAME = "logger_file_limit_console" # default
 PYTHON_CONFIG_NAME = "python_personal" # default
-CREATE_BUTTON = False
 ADDAPT_WIDTH = False
 NOTEBOOK_NAME = get_notebook_name()
 
@@ -45,15 +44,9 @@ envs = Envs()
 envs.set_logger(LOGGER_CONFIG_NAME)
 envs.set_config(PYTHON_CONFIG_NAME)
 Logger().start_timer(f"NOTEBOOK; Notebook name: {NOTEBOOK_NAME}")
-if CREATE_BUTTON:
-    create_button()
 if ADDAPT_WIDTH:
     display(HTML("<style>.container { width:100% !important; }</style>")) # notebook width
 
-from src.utils.notebook_support_functions import get_notebook_name
-from src.utils.logger import Logger
-
-Logger().start_timer(f"NOTEBOOK; Notebook name: {get_notebook_name()}")
 Logger().set_meantime("Chapter one")
 
 # +

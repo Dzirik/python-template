@@ -55,4 +55,5 @@ def get_colors_for_level(fill_color: str) -> dict[str, Any]:
         "grid_background": {"color": "#858B97", "opacity": 0.4},
         "error": ["#ED254E", "#C81D25"],
         "dot": ["#99AA38", "#ED254E", "#ACD2ED"],
+        "vertical_line": ["#000000"],
     }

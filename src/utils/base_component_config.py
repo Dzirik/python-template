@@ -5,7 +5,7 @@ Class for general interface for configs.
 from typing import Any, Protocol
 
 from src.utils.config_loader import load_config
-from src.utils.meta_class import CONFIG_TYPE_NAME, MetaClass
+from src.utils.monitored_base import CONFIG_TYPE_NAME, MonitoredBase
 
 
 class _NamedTupleLike(Protocol):
@@ -14,7 +14,7 @@ class _NamedTupleLike(Protocol):
     def _asdict(self) -> dict[str, Any]: ...
 
 
-class BaseComponentConfig[T: _NamedTupleLike](MetaClass):
+class BaseComponentConfig[T: _NamedTupleLike](MonitoredBase):
     """
     Parent class for general interface for configs.
 
@@ -24,7 +24,7 @@ class BaseComponentConfig[T: _NamedTupleLike](MetaClass):
     def __init__(
         self, class_name: str, config_file_name: str, data_structure: type[T], config_subfolder: str | None = None
     ) -> None:
-        MetaClass.__init__(self, class_type=CONFIG_TYPE_NAME, class_name=class_name)
+        MonitoredBase.__init__(self, class_type=CONFIG_TYPE_NAME, class_name=class_name)
 
         self._config_file_name = config_file_name
         self._data_structure: type[T] = data_structure

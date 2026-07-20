@@ -28,19 +28,16 @@
 
 # Notebooks for jupytext
 /notebooks/final/*.ipynb
-/notebooks/final/archive_gen_01_ma/*.ipynb
 /notebooks/raw/*.ipynb
-/notebooks/raw/archive_gen_01_ma/*.ipynb
 /notebooks/template/*.ipynb
 /notebooks/documentation/*.ipynb
 
 # Marimo
-/marimo/apps/__marimo__
+/marimo/app/__marimo__
 /marimo/documentation/__marimo__
 /marimo/final/__marimo__
 /marimo/raw/__marimo__
-/marimo/temporal/__marimo__
-/marimo/temporal
+/marimo/template/__marimo__
 
 # Personal research notebook
 /notebooks/raw/playground_notebook.py
@@ -56,10 +53,6 @@
 # (see configurations/schemas/README.md).
 /.idea/*
 !/.idea/jsonSchemas.xml
-
-# support files
-ws.sh
-a.sh
 
 # GENERAL SETTING FROM GITHUB -------------------------------------------------------
 # https://github.com/github/gitignore/blob/master/Python.gitignore

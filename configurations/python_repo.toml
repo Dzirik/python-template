@@ -9,7 +9,7 @@ convert_to_html = true
 ntb_path = "notebooks/template/template_parameterized_execution_notebook.ipynb"
 output_folder = "reports"
 notebook_executioner_params = [
-    { n = 10, a = 1, b = 1, title = "Positive" },
-    { n = 15, a = -1, b = -1, title = "Negative" },
-    { n = 20, a = 0, b = 2, title = "Zero" },
+    { n = 10.0, a = 1.0, b = 1.0, title = "Positive" },
+    { n = 15.0, a = -1.0, b = -1.0, title = "Negative" },
+    { n = 20.0, a = 0.0, b = 2.0, title = "Zero" },
 ]

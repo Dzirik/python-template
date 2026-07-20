@@ -35,7 +35,7 @@ class TimeAttributes(NamedTuple):
     weekend: bool
     months: bool
     years: bool
-    min_inerval: int
+    min_interval: int
 
 
 class DatetimeOneHotEncoderTransformer(BaseTransformer):
@@ -54,7 +54,12 @@ class DatetimeOneHotEncoderTransformer(BaseTransformer):
         'SOME_TIME_ATTRIBUTE_HOUR_0.0', 'SOME_TIME_ATTRIBUTE_HOUR_1.0', 'SOME_TIME_ATTRIBUTE_HOUR_2.0',
     """
 
-    def __init__(self, handle_unknown: str = "ignore") -> None:
+    def __init__(self, time_attributes: TimeAttributes, handle_unknown: str = "ignore") -> None:
+        """
+        Initialises the transformer with the time attributes to encode and the encoder configuration.
+        :param time_attributes: TimeAttributes. Which one-hot attributes have to be created.
+        :param handle_unknown: str. Passed through to the underlying OneHotEncoder. Default is "ignore".
+        """
         transformer_description = TransformerDescription(
             input_type=[DatetimeIndex], input_elements_type=[None], output_type=[ndarray], output_elements_type=[int]
         )
@@ -62,40 +67,12 @@ class DatetimeOneHotEncoderTransformer(BaseTransformer):
             self, class_name="DatetimeOneHotEncoder", transformer_description=transformer_description
         )
 
-        self._do_attribute: TimeAttributes
+        self._do_attribute: TimeAttributes = time_attributes
         self._dt_attr_names: list[str] = []
 
         self._encoder = OneHotEncoder(handle_unknown=handle_unknown)
 
-    def _set_configuration(
-        self,
-        add_hours: bool,
-        add_days_of_week: bool,
-        add_weekend: bool,
-        add_months: bool,
-        add_years: bool,
-        min_interval: int = 0,
-    ) -> None:
-        """
-        Sets which one hot attributes have to be created.
-        :param add_hours: bool. If include hours.
-        :param add_days_of_week: bool. If include days of the week.
-        :param add_weekend: bool. If include weekend.
-        :param add_months: bool. If include months.
-        :param add_years: bool. If include years.
-        :param min_interval: int. For 60 minutes the same as for hours. In general division of the day per min_interval
-                             window.
-        """
-        self._do_attribute = TimeAttributes(
-            hours=add_hours,
-            days_of_week=add_days_of_week,
-            weekend=add_weekend,
-            months=add_months,
-            years=add_years,
-            min_inerval=min_interval,
-        )
-
-    def _convert_datetime_index_to_numberical_attributes(self, dt_index: DatetimeIndex) -> ndarray[Any, dtype[Any]]:
+    def _convert_datetime_index_to_numerical_attributes(self, dt_index: DatetimeIndex) -> ndarray[Any, dtype[Any]]:
         """
         Converts the datetime index array into columns of numerical values for requested time attributes:
         hours: 0-23,
@@ -130,10 +107,10 @@ class DatetimeOneHotEncoderTransformer(BaseTransformer):
             x = array(dt_index.year).reshape(-1, 1)
             numerical_values = concatenate([numerical_values, x], axis=1)
             self._dt_attr_names.append("YEAR")
-        if self._do_attribute.min_inerval != 0:
-            x = array((dt_index.hour * 60 + dt_index.minute) // self._do_attribute.min_inerval).reshape(-1, 1)
+        if self._do_attribute.min_interval != 0:
+            x = array((dt_index.hour * 60 + dt_index.minute) // self._do_attribute.min_interval).reshape(-1, 1)
             numerical_values = concatenate([numerical_values, x], axis=1)
-            self._dt_attr_names.append("MIN" + str(self._do_attribute.min_inerval))
+            self._dt_attr_names.append("MIN" + str(self._do_attribute.min_interval))
 
         if numerical_values.shape[1] == 1:
             ExceptionExecutioner(NoProperOptionInIf).log_and_raise(
@@ -161,64 +138,24 @@ class DatetimeOneHotEncoderTransformer(BaseTransformer):
             encoded_attributes = [attr.replace("x" + str(i), prefix + dt_attr_name) for attr in encoded_attributes]
         return encoded_attributes
 
-    # pylint: disable=arguments-differ
-    # pylint: disable=too-many-arguments
-    # pylint: disable=arguments-renamed
-    def fit(
-        self,
-        dt_index: DatetimeIndex,
-        add_hours: bool = False,
-        add_days_of_week: bool = True,
-        add_weekend: bool = False,
-        add_months: bool = False,
-        add_years: bool = False,
-        min_interval: int = 0,
-    ) -> None:
+    def fit(self, dt_index: DatetimeIndex) -> None:
         """
-        Fits.
+        Fits the one-hot encoder on the numerical attributes derived from dt_index, using the TimeAttributes
+        supplied at construction.
         :param dt_index: DatetimeIndex.
-        :param add_hours: bool. If include hours.
-        :param add_days_of_week: bool. If include days of the week.
-        :param add_weekend: bool. If include weekend.
-        :param add_months: bool. If include months.
-        :param add_years: bool. If include years.
-        :param min_interval: int. For 60 minutes the same as for hours. In general division of the day per min_interval
-                     window.
-        :return: ndarray.
         """
-        self._set_configuration(add_hours, add_days_of_week, add_weekend, add_months, add_years, min_interval)
-        numerical_attributes = self._convert_datetime_index_to_numberical_attributes(dt_index)
+        numerical_attributes = self._convert_datetime_index_to_numerical_attributes(dt_index)
         self._encoder.fit(numerical_attributes)
+        self._store_params()
 
-    def fit_predict(
-        self,
-        dt_index: DatetimeIndex,
-        add_hours: bool = False,
-        add_days_of_week: bool = True,
-        add_weekend: bool = False,
-        add_months: bool = False,
-        add_years: bool = False,
-        min_interval: int = 0,
-    ) -> ndarray[Any, dtype[Any]]:
+    def fit_predict(self, dt_index: DatetimeIndex) -> ndarray[Any, dtype[Any]]:
         """
-        Fit predicts.
+        Fits the one-hot encoder on dt_index and returns the one-hot encoded prediction for the same data.
         :param dt_index: DatetimeIndex.
-        :param add_hours: bool. If include hours.
-        :param add_days_of_week: bool. If include days of the week.
-        :param add_weekend: bool. If include weekend.
-        :param add_months: bool. If include months.
-        :param add_years: bool. If include years.
-        :param min_interval: int. For 60 minutes the same as for hours. In general division of the day per min_interval
-                             window.
         :return: ndarray[Any, dtype[Any]].
         """
-        self._set_configuration(add_hours, add_days_of_week, add_weekend, add_months, add_years, min_interval)
-        numerical_attributes = self._convert_datetime_index_to_numberical_attributes(dt_index)
-        prediction: ndarray[Any, dtype[Any]]
-        prediction = self._encoder.fit_transform(numerical_attributes).toarray()
-        return prediction
-
-    # pylint: enable=too-many-arguments
+        self.fit(dt_index)
+        return self.predict(dt_index)
 
     def predict(self, dt_index: DatetimeIndex) -> ndarray[Any, dtype[Any]]:
         """
@@ -226,16 +163,60 @@ class DatetimeOneHotEncoderTransformer(BaseTransformer):
         :param dt_index: DatetimeIndex.
         :return: ndarray[Any, dtype[Any]].
         """
-        numerical_attributes = self._convert_datetime_index_to_numberical_attributes(dt_index)
+        numerical_attributes = self._convert_datetime_index_to_numerical_attributes(dt_index)
         prediction: ndarray[Any, dtype[Any]]
         prediction = self._encoder.transform(numerical_attributes).toarray()
         return prediction
 
-    def inverse(self, data: Any) -> Any:  # noqa: ARG002
+    def inverse(self, data: ndarray[Any, dtype[Any]]) -> ndarray[Any, dtype[Any]]:
         """
         Does the inverse transformation.
+        NOTE: the original DatetimeIndex is NOT recoverable from the one-hot encoded attributes. This returns the
+        pre-one-hot numerical attribute columns (e.g. hour, day of week, ... as numbers), not datetimes.
+        :param data: ndarray[Any, dtype[Any]]. One-hot encoded data to invert.
+        :return: ndarray[Any, dtype[Any]]. The numerical attribute matrix that was one-hot encoded.
         """
-        return None
+        inverted: ndarray[Any, dtype[Any]] = self._encoder.inverse_transform(data)
+        return inverted
 
-    # pylint: enable=arguments-differ
-    # pylint: enable=arguments-renamed
+    def _store_params(self) -> None:
+        """
+        Stores everything needed to round-trip a fitted encoder into self._params: the TimeAttributes instance,
+        the derived attribute names, and the fitted encoder's learned categories.
+        """
+        self._params = {
+            "time_attributes": self._do_attribute,
+            "dt_attr_names": self._dt_attr_names,
+            "categories_": self._encoder.categories_,
+        }
+
+    def restore_from_params(self, params: dict[str, Any]) -> None:
+        """
+        Restores a fitted state from previously saved params, rebuilding a working OneHotEncoder from the saved
+        categories without re-fitting.
+        :param params: Dict[str, Any]. Params as produced by get_params() after a fit.
+        """
+        self._params = params
+        self._do_attribute = params["time_attributes"]
+        self._dt_attr_names = params["dt_attr_names"]
+
+        categories = params["categories_"]
+        self._encoder.categories_ = categories
+        self._encoder.n_features_in_ = len(categories)
+        self._encoder._n_features_outs = [len(category) for category in categories]
+        self._encoder._infrequent_enabled = False
+        self._encoder.drop_idx_ = None
+        self._encoder._drop_idx_after_grouping = None
+
+
+if __name__ == "__main__":
+    from datetime import datetime
+
+    demo_time_attributes = TimeAttributes(
+        hours=True, days_of_week=True, weekend=True, months=True, years=False, min_interval=0
+    )
+    demo_transformer = DatetimeOneHotEncoderTransformer(demo_time_attributes)
+    demo_data = DatetimeIndex([datetime(2024, 1, 15, 10, 30), datetime(2024, 2, 20, 14, 45)])
+    demo_output = demo_transformer.fit_predict(demo_data)
+    print(demo_output)
+    print(demo_transformer.get_encoded_attribute_names())

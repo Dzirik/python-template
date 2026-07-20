@@ -25,6 +25,21 @@ class _FixtureTarget(NamedTuple):
     amount: int
 
 
+class _NestedTable(NamedTuple):
+    """NamedTuple nested table used by _NestedFixtureTarget to exercise recursive table merging."""
+
+    label: str
+    value: int
+
+
+class _NestedFixtureTarget(NamedTuple):
+    """NamedTuple target with a nested table, used to exercise base+overlay merging."""
+
+    name: str
+    amount: int
+    nested: _NestedTable
+
+
 def _set_project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """
     Points Project Paths at tmp_path for the duration of a test and returns the configurations folder.
@@ -129,6 +144,74 @@ def test_load_config_subfolder_resolves_fixture_file(tmp_path: Path, monkeypatch
     result = load_config("sub_profile", _FixtureTarget, subfolder="loggers")
 
     assert result == _FixtureTarget(name="nested", amount=7)
+
+
+def test_load_config_base_overlay_falls_back_to_base_for_omitted_keys(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Tests that a partial overlay deep-merged over a base (via base_name) falls back to the base's value for any
+    key - including a nested-table key - that the overlay omits, while keys the overlay does set win.
+    """
+    configurations_folder = _set_project_root(tmp_path, monkeypatch)
+    (configurations_folder / "base_profile.toml").write_text(
+        'name = "base"\namount = 1\n\n[nested]\nlabel = "base-label"\nvalue = 1\n'
+    )
+    (configurations_folder / "overlay_profile.toml").write_text("amount = 2\n\n[nested]\nvalue = 2\n")
+
+    result = load_config("overlay_profile", _NestedFixtureTarget, base_name="base_profile")
+
+    assert result == _NestedFixtureTarget(name="base", amount=2, nested=_NestedTable(label="base-label", value=2))
+
+
+def test_load_config_base_overlay_missing_base_raises_file_not_found(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Tests that a missing base_name file raises FileNotFound naming the base profile, the same way a missing
+    config_name file does.
+    """
+    configurations_folder = _set_project_root(tmp_path, monkeypatch)
+    (configurations_folder / "overlay_profile.toml").write_text("amount = 2\n")
+
+    with pytest.raises(FileNotFound) as exc_info:
+        load_config("overlay_profile", _FixtureTarget, base_name="does_not_exist_base")
+
+    assert "does_not_exist_base" in exc_info.value.get_description()
+
+
+def test_load_config_base_overlay_typo_key_raises_incorrect_data_structure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Tests that a misspelled key in the overlay is rejected by failonextra=True: once merged over the base it
+    becomes an extra key with no matching field on the target.
+    """
+    configurations_folder = _set_project_root(tmp_path, monkeypatch)
+    (configurations_folder / "base_profile.toml").write_text('name = "base"\namount = 1\n')
+    (configurations_folder / "overlay_profile.toml").write_text("amonut = 2\n")
+
+    with pytest.raises(IncorrectDataStructure) as exc_info:
+        load_config("overlay_profile", _FixtureTarget, base_name="base_profile")
+
+    assert "_FixtureTarget" in exc_info.value.get_description()
+
+
+def test_load_config_base_overlay_wrong_typed_value_raises_incorrect_data_structure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Tests that a wrong-typed scalar in the overlay is rejected by basiccast=False once deep-merged over the
+    base, rather than being silently coerced.
+    """
+    configurations_folder = _set_project_root(tmp_path, monkeypatch)
+    (configurations_folder / "base_profile.toml").write_text('name = "base"\namount = 1\n')
+    (configurations_folder / "overlay_profile.toml").write_text('amount = "not-an-int"\n')
+
+    with pytest.raises(IncorrectDataStructure) as exc_info:
+        load_config("overlay_profile", _FixtureTarget, base_name="base_profile")
+
+    assert "_FixtureTarget" in exc_info.value.get_description()
 
 
 def test_config_loader_module_imports_no_project_logger() -> None:

@@ -1,6 +1,4 @@
 """
-Visualizer
-
 Base class for all time series plotly visualisations.
 
 Customize markers: https://plotly.com/python/marker-style/
@@ -25,7 +23,7 @@ BASE_SELECTORS: list[dict[str, Any]] = [
 ]
 
 ATTR_OPEN = "OPEN"
-ATTR_HIGH = "HIGHT"
+ATTR_HIGH = "HIGH"
 ATTR_LOW = "LOW"
 ATTR_CLOSE = "CLOSE"
 
@@ -147,12 +145,7 @@ class PlotlyTimeSeriesBase(PlotlyBase):
                 "tickfont": {"size": self._other_params["axis_font_size"]},
             },
             "title": plot_title,
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
             "yaxis": {
                 "title": "",  # Optionally set or modify the y-axis title
                 "title_font": {"size": self._other_params["axis_font_size"]},  # Title font size

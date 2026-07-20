@@ -12,7 +12,7 @@ import pytest
 
 from src.data import saver_and_loader as saver_and_loader_module
 from src.data.saver_and_loader import SaverAndLoader
-from src.exceptions.data_exception import FileNotFound
+from src.exceptions.data_exception import FileNotFound, IncorrectDataStructure
 
 
 class _FixtureConfigData(NamedTuple):
@@ -82,6 +82,64 @@ def test_load_config_data_missing_file_raises_file_not_found(tmp_path: Path, mon
 
     description = exc_info.value.get_description()
     assert str(tmp_path / "does_not_exist.json") in description
+
+
+def test_load_dataframe_from_csv_undersized_file_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Tests that loading a csv file at or below min_size raises IncorrectDataStructure instead of returning an
+    empty DataFrame silently.
+    """
+    _patch_get_path(monkeypatch, tmp_path)
+    csv_path = tmp_path / "data.csv"
+    csv_path.write_text("a", encoding="utf8")
+
+    with pytest.raises(IncorrectDataStructure) as exc_info:
+        SaverAndLoader().load_dataframe_from_csv("data")
+
+    description = exc_info.value.get_description()
+    assert str(csv_path) in description
+
+
+def test_load_dataframe_from_csv_adequate_file_loads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Tests that loading a csv file above min_size returns the parsed DataFrame as usual.
+    """
+    _patch_get_path(monkeypatch, tmp_path)
+    csv_path = tmp_path / "data.csv"
+    csv_path.write_text("col_a,col_b\n1,2\n3,4\n", encoding="utf8")
+
+    result = SaverAndLoader().load_dataframe_from_csv("data")
+
+    assert list(result.columns) == ["col_a", "col_b"]
+    assert len(result) == 2
+
+
+def test_load_from_pickle_undersized_file_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Tests that loading a pickle file below min_size raises IncorrectDataStructure instead of returning None
+    silently.
+    """
+    _patch_get_path(monkeypatch, tmp_path)
+    pkl_path = tmp_path / "data.pkl"
+    pkl_path.write_bytes(b"123")
+
+    with pytest.raises(IncorrectDataStructure) as exc_info:
+        SaverAndLoader.load_from_pickle("data", min_size=10)
+
+    description = exc_info.value.get_description()
+    assert str(pkl_path) in description
+
+
+def test_load_from_pickle_adequate_file_loads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Tests that loading a pickle file above min_size returns the unpickled data as usual.
+    """
+    _patch_get_path(monkeypatch, tmp_path)
+
+    SaverAndLoader.save_to_pickle({"key": "value"}, "data")
+    result = SaverAndLoader.load_from_pickle("data")
+
+    assert result == {"key": "value"}
 
 
 def test_saver_and_loader_module_imports_no_pyhocon() -> None:

@@ -3,24 +3,28 @@ Print colored success or error messages.
 """
 
 import sys
+from pathlib import Path
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path += [str(_SCRIPT_DIR / ".."), str(_SCRIPT_DIR / "../..")]
+
+from src.utils.helper_functions import print_in_color  # noqa: E402
 
 
 def print_success(message: str) -> None:
     """
-    Print a success message in green.
+    Prints a success message in bold green.
     :param message: str. Message to print.
     """
-    # ANSI color codes: \033[1;92m = bold green, \033[0m = reset
-    print(f"\033[1;92m{message}\033[0m")
+    print_in_color(message, color="green", attrs=["bold"])
 
 
 def print_error(message: str) -> None:
     """
-    Print an error message in red.
+    Prints an error message in bold red.
     :param message: str. Message to print.
     """
-    # ANSI color codes: \033[1;91m = bold red, \033[0m = reset
-    print(f"\033[1;91m{message}\033[0m")
+    print_in_color(message, color="red", attrs=["bold"])
 
 
 if __name__ == "__main__":

@@ -5,8 +5,6 @@ Timer
 from datetime import datetime
 from time import sleep, time
 
-from pandas import DataFrame
-
 DEC_PLACES = 2
 
 
@@ -153,17 +151,13 @@ class Timer:
         """
         return self._timer_end_time
 
-    def get_data(self) -> tuple[list[float], list[float], list[str], DataFrame]:
+    def get_data(self) -> tuple[list[float], list[float], list[str]]:
         """
-        Returns interval durations, cumulative time, and label times both separately and in the form of a dataframe.
-        :return: Tuple[List[float], List[float], List[str], DataFrame]. Mean duration times in seconds, cumulative mean
+        Returns interval durations, cumulative time, and label times.
+        :return: Tuple[List[float], List[float], List[str]]. Mean duration times in seconds, cumulative mean
         times and mean label times.
         """
-        df = DataFrame()
-        df["LABEL"] = self._mean_times_labels
-        df["MEANTIMES [s]"] = self._mean_times_in_sec
-        df["CUMULATIVE TIME [s]"] = self._mean_time_cumulative_secs
-        return self._mean_times_in_sec, self._mean_time_cumulative_secs, self._mean_times_labels, df
+        return self._mean_times_in_sec, self._mean_time_cumulative_secs, self._mean_times_labels
 
     # HELPER FUNCTIONS ----------------------------------------------------------------------------
 
@@ -174,7 +168,7 @@ class Timer:
         :param timestamp: float. Date as float.
         :return: datetime.
         """
-        return datetime.utcfromtimestamp(timestamp)
+        return datetime.fromtimestamp(timestamp)
 
 
 if __name__ == "__main__":
@@ -191,7 +185,7 @@ if __name__ == "__main__":
 
     t.end(label="Last Interval")
 
-    (MT, MT_C, MT_L, DATA_FRAME) = t.get_data()
+    (MT, MT_C, MT_L) = t.get_data()
     print(round(sum(MT), 2))
 
     print(t.get_start_time())
@@ -199,7 +193,6 @@ if __name__ == "__main__":
     print(MT)
     print(MT_C)
     print(MT_L)
-    print(DATA_FRAME)
 
     t.start()
     sleep(0.1)
@@ -212,7 +205,7 @@ if __name__ == "__main__":
 
     t.end(label="Last Interval - second round")
 
-    (MT, MT_C, MT_L, DATA_FRAME) = t.get_data()
+    (MT, MT_C, MT_L) = t.get_data()
     print(round(sum(MT), 2))
 
     print(t.get_start_time())
@@ -220,4 +213,3 @@ if __name__ == "__main__":
     print(MT)
     print(MT_C)
     print(MT_L)
-    print(DATA_FRAME)

@@ -10,9 +10,9 @@ For the template's purpose, scope, guiding principles, constraints, and roadmap,
 
 ## Tooling & commands
 
-Everything runs through the **`Makefile`**, and all Python invocations use **`uv run --no-project`**. Dependencies are managed by `uv` — never hand-edit `uv.lock`; use `make add-lib library=<name>` / `make remove-lib library=<name>` (append `-win` variants for Windows-only deps, which go in the `windows` optional-dependency group).
+Everything runs through the **`Makefile`**, and all Python invocations use plain **`uv run`** (uv-native workflow, no `--no-project`). Dependencies are managed by `uv` through **dependency groups** in `pyproject.toml` (`dev`, `windows`), not optional-dependencies/extras — never hand-edit `uv.lock`; use `make add-lib library=<name>` / `make remove-lib library=<name>` (append `-win` variants to target the `windows` group). `make lock` regenerates `uv.lock` from `pyproject.toml`; `make sync` installs exactly what `uv.lock` pins. `uv.lock` **is committed** to the repository for reproducible installs.
 
-Setup: `make create-venv` (or `create-venv-linux`) — installs Python 3.13, creates `.venv`, and generates the git-ignored working files (`make_config.mk`, `.env`, `configurations/python_personal.toml`, `notebooks/raw/playground_notebook.py`) from their templates. Then `make install-hooks` (`-linux`).
+Setup: `make create-venv` — installs Python 3.13, creates `.venv` (detects Windows vs. Linux/macOS itself, no separate `-linux` target), and generates the git-ignored working files (`make_config.mk`, `.env`, `configurations/python_personal.toml` as a commented partial overlay, `notebooks/raw/playground_notebook.py`, `marimo/raw/playground_marimo.py`) from their templates. Then `make install-hooks` (also OS-detecting, no separate `-linux` target).
 
 Quality checks (each has a `-no-clear` variant that skips the console clear — use those in non-interactive contexts):
 
@@ -21,14 +21,14 @@ Quality checks (each has a `-no-clear` variant that skips the console clear — 
 - `make lint-check` / `make lint-fix` — ruff linter (docstring rules `D` excluded here)
 - `make docstring-check` / `make docstring-fix` — ruff docstring rules only
 - `make test` / `make test-detailed` — pytest (quiet / verbose)
-- `make security-check` — bandit + pip-audit (specific CVEs are ignored in the Makefile recipe)
-- `make all` — mypy + format + lint + docstring + test (what to run before pushing)
-- `make all-secure` — `all` plus security; **this is exactly what CI runs** (matrix: Python 3.13/3.14 on ubuntu)
+- `make security-check` — bandit + pip-audit
+- `make all` — mypy + format + lint + docstring + test (what to run before pushing); stops at the first failure, no `-i`/ignore-errors flag
+- `make all-secure` — `all` plus security; **this is exactly what CI runs** (4-job matrix: `{ubuntu-latest, windows-latest} × {Python 3.13, 3.14}`, via `astral-sh/setup-uv`)
 - `make cover` — HTML coverage report into `coverage/`
 
 ### Single-file / single-test workflow
 
-Per-file targets read `FILE_FOLDER` and `FILE_NAME` from `make_config.mk` (git-ignored; created from `make_config_template.mk`). They map to `src/<FILE_FOLDER>/<FILE_NAME>.py`, `tests/tests_<FILE_FOLDER>/test_<FILE_NAME>.py`, and an optional `.txt` doctest file. Edit `make_config.mk`, then run `make mypy-f`, `make lint-check-f`, `make test-f`, `make all-f`, etc. To run one test file directly: `uv run --no-project python -m pytest tests/tests_utils/test_leap_year.py`.
+Per-file targets read `FILE_FOLDER` and `FILE_NAME` from `make_config.mk` (git-ignored; created from `make_config_template.mk`). They map to `src/<FILE_FOLDER>/<FILE_NAME>.py`, `tests/tests_<FILE_FOLDER>/test_<FILE_NAME>.py`, and an optional `.txt` doctest file. Edit `make_config.mk`, then run `make mypy-f`, `make lint-check-f`, `make test-f`, `make all-f`, etc. To run one test file directly: `uv run python -m pytest tests/tests_utils/test_leap_year.py`.
 
 ### Notebooks
 
@@ -37,9 +37,11 @@ Per-file targets read `FILE_FOLDER` and `FILE_NAME` from `make_config.mk` (git-i
 
 ## Architecture
 
-### Configuration (Singleton + TOML + env vars)
+### Configuration (Singleton + TOML base/overlay + env vars)
 
-Resolution chain: `.env` sets `ENV_CONFIG` (default `python_personal`) → names a `configurations/<name>.toml` file (TOML syntax) → parsed by the stdlib `tomllib` → loaded via `typedload` into the `ApplicationConfigData` NamedTuple tree (`src/utils/application_config_data.py`). `ApplicationConfig` (`src/utils/application_config.py`) is a **Singleton** (`src/utils/singleton_meta.py`); call `ApplicationConfig().get_data()`. `Envs` (`src/utils/envs.py`) is the only place env vars are read/written — go through it, don't touch `os.environ` directly. Config `.toml` files search several candidate paths so they resolve from both repo root and CWD (CI). There are three config profiles (`python_repo`, `python_personal`, `python_local`) and five logger profiles, all `.toml` now. Config profiles used to be HOCON parsed by the third-party `pyhocon`; see [ADR 0003](docs/adr/0003-toml-config-profiles.md) and [`docs/tutorials/CONF_TO_TOML.md`](docs/tutorials/CONF_TO_TOML.md) for the migration rationale and upgrade steps. `.conf` is retired from the repository entirely — see [ADR 0004](docs/adr/0004-logger-profiles-toml-dictconfig.md) for the Logger's own migration off it.
+Resolution chain: `.env` sets `ENV_CONFIG` (default `python_repo`) → names a `configurations/<name>.toml` file (TOML syntax) → resolved to an absolute path via `ProjectPaths` (`src/utils/project_paths.py`, anchored to the project root by walking up from `__file__` to a marker such as `pyproject.toml`/`.git` — no CWD-relative or multi-candidate-path search; see [ADR 0002](docs/adr/0002-repo-root-path-anchoring.md)) → parsed by the stdlib `tomllib` → loaded via `typedload` into the `ApplicationConfigData` NamedTuple tree (`src/utils/application_config_data.py`). `ApplicationConfig` (`src/utils/application_config.py`) is a **Singleton** (`src/utils/singleton_meta.py`); call `ApplicationConfig().get_data()`. `Envs` (`src/utils/envs.py`) is the only place env vars are read/written — go through it, don't touch `os.environ` directly.
+
+`python_repo` is the **tracked base profile** — always loaded first, and the default when `ENV_CONFIG` selects nothing else, so a clean clone and CI both pass with no setup step. `python_personal` (git-ignored, generated by `make create-venv`) and `python_local` (tracked example) are **optional partial overlays** deep-merged over that base — they only need to set the keys they override; strict `typedload` loading (`basiccast=False`, `failonextra=True`) applies to the merged result. See [ADR 0006](docs/adr/0006-config-tracked-base-and-overlays.md) for the full model. There are three config profiles (`python_repo`, `python_personal`, `python_local`) and five logger profiles, all `.toml`. Config profiles used to be HOCON parsed by the third-party `pyhocon`; see [ADR 0003](docs/adr/0003-toml-config-profiles.md) and [`docs/tutorials/CONF_TO_TOML.md`](docs/tutorials/CONF_TO_TOML.md) for the migration rationale and upgrade steps. `.conf` is retired from the repository entirely — see [ADR 0004](docs/adr/0004-logger-profiles-toml-dictconfig.md) for the Logger's own migration off it.
 
 ### Logging
 
@@ -49,13 +51,13 @@ Resolution chain: `.env` sets `ENV_CONFIG` (default `python_personal`) → names
 
 Custom exceptions subclass `CustomException` (grouped in `src/exceptions/data_exception.py` and `development_exception.py`), each carrying an error code + description. Raise them through `ExceptionExecutioner(SomeException).log_and_raise("...")` — it logs then raises in a unified way.
 
-### Transformers & MetaClass
+### Transformers & MonitoredBase
 
-`BaseTransformer` (`src/transformations/base_transformer.py`) defines an sklearn-style `fit`/`predict`/`fit_predict`/`inverse` interface plus `get_params`/`restore_from_params`. It extends `MetaClass` (`src/utils/meta_class.py`), the common base giving every class a `ClassInfo` (type + name + descriptions) for unified monitoring/logging. Transformers do **not** validate input data shape — that is the child class's responsibility.
+`BaseTransformer` (`src/transformations/base_transformer.py`) defines an sklearn-style `fit`/`predict`/`fit_predict`/`inverse` interface plus `get_params`/`restore_from_params`. It extends `MonitoredBase` (`src/utils/monitored_base.py`), the common base giving every class a `ClassInfo` (type + name + descriptions) for unified monitoring/logging. Transformers do **not** validate input data shape — that is the child class's responsibility.
 
 ### Production supervision (`src/scripts_production/`)
 
-`watchdog.py` supervises worker subprocesses (restart on crash/freeze), driven by `configurations/watchdog_*.toml` loaded through `WatchdogConfig`. `heartbeat.py` optionally pings healthchecks.io (URLs from `HEALTHCHECK_PING_URL` in `.env`). `checker.py` is the monitored-worker example. See `docs/tutorials/PERSISTENT_RUN.md` and `docs/tutorials/CHECKER_SCHEDULER_SET_UP.md`.
+`watchdog.py` supervises worker subprocesses (restart on crash/freeze), driven by `configurations/watchdogs/watchdog_*.toml` loaded through `WatchdogConfig`. `heartbeat.py` optionally pings healthchecks.io (URLs from `HEALTHCHECK_PING_URL` in `.env`). `checker.py` is the **outer sentinel** — an ephemeral, Task-Scheduler-invoked process that checks the *watchdog's* health (not a worker) and recovers it if it has crashed or frozen; `run_cmd_status_print_01.py` / `run_cmd_status_print_02.py` are the monitored-worker examples, and are the reference implementation of the graceful-stop signal contract (`SIGBREAK`/`SIGTERM` handler). Supervision semantics — the `CTRL_BREAK_EVENT`-based graceful-stop contract, the backoff-to-cap crash-loop policy (never permanently gives up), and the atomic single-instance lock — are recorded in [ADR 0007](docs/adr/0007-watchdog-supervision-semantics.md). See `docs/tutorials/PERSISTENT_RUN.md` and `docs/tutorials/CHECKER_SCHEDULER_SET_UP.md`.
 
 ## Code style (STRICT — match existing files exactly)
 
@@ -64,10 +66,10 @@ Custom exceptions subclass `CustomException` (grouped in `src/exceptions/data_ex
 ### Typing (mypy `--strict`)
 
 - **Fully annotate everything**: every function/method parameter and return type, including `-> None`. No bare/implicit `Any` from missing annotations.
-- Use **modern built-in generics and union syntax** (`target-version = py311`): `list[str]`, `dict[str, Any]`, `X | None` — **never** `List`, `Dict`, `Optional[X]`, or `Union[...]`.
+- Use **modern built-in generics and union syntax** (`target-version = py313`): `list[str]`, `dict[str, Any]`, `X | None` — **never** `List`, `Dict`, `Optional[X]`, or `Union[...]`.
 - **Annotate instance attributes in `__init__`** even when assigned later, e.g. `self._do_attribute: TimeAttributes` / `self._dt_attr_names: list[str] = []`.
 - Type numpy arrays as `ndarray[Any, dtype[Any]]`; declare a local's type before a conditional assignment when needed (`x: ndarray[Any, dtype[Any]]`).
-- Use **`NamedTuple` subclasses** for structured/immutable data (config trees, descriptions) — see `application_config_data.py`, `meta_class.py`. Not dataclasses or dicts.
+- Use **`NamedTuple` subclasses** for structured/immutable data (config trees, descriptions) — see `application_config_data.py`, `monitored_base.py`. Not dataclasses or dicts.
 
 ### Docstrings (ruff `D`, numpy convention)
 
@@ -96,12 +98,12 @@ def convert_datetime_to_string_date(now: datetime | None = None, sep: str = "-")
 
 ### Suppressions (targeted only — never blanket)
 
-Suppress a specific rule on the specific line, with the code, and (for security) a reason: `# noqa: ARG002`, `# type: ignore[call-arg]`, `# nosec B404`, or scoped `# pylint: disable=...` / `# pylint: enable=...` pairs. Do not add file-wide `# noqa` or loosen the config to make code pass.
+Suppress a specific rule on the specific line, with the code, and (for security) a reason: `# noqa: ARG002`, `# type: ignore[call-arg]`, `# nosec B404`. Do not add file-wide `# noqa` or loosen the config to make code pass. Pylint is not part of the toolchain — mypy `--strict` and ruff are the only gates; `# pylint:` pragmas do not belong in this codebase.
 
 ## Conventions & gotchas
 
-- **Tests set `ENV_RUNNING_UNIT_TESTS=True` and force `ENV_LOGGER=logger_console`** (see `tests/conftest.py`, session autouse). When that flag is set, `ExceptionExecutioner` skips logging — keep this in mind when testing error paths. Because config/logger are Singletons, set env vars via `Envs` *before* first instantiation.
-- Test tree mirrors `src/` with a `tests_` prefix (`src/utils/` → `tests/tests_utils/`). Tests are parametrized pytest; some modules also carry `.txt` doctest files run by pytest. The `lint`/`docstring` targets apply ruff to `tests` too — tests follow the same style rules as `src`.
+- **Tests set `ENV_RUNNING_UNIT_TESTS=True` and force `ENV_LOGGER=logger_console`** (see `tests/conftest.py`, session autouse), so logging during tests always goes to the console logger. `ExceptionExecutioner.log_and_raise` always logs via `Logger().exception(...)` regardless of this flag — it has no test-harness special case. Because config/logger are Singletons, set env vars via `Envs` *before* first instantiation.
+- Test tree mirrors `src/` with a `tests_` prefix (`src/utils/` → `tests/tests_utils/`). Tests are parametrized pytest; some modules also carry a `.txt` doctest file — these ARE collected automatically by the default `make test`/`make all` run (`addopts` sets `--doctest-glob=*.txt` in `pyproject.toml`, which matches them under `testpaths`), in addition to running individually via `make test-f`/`make test-f-detailed` when `make_config.mk` points at that file. The `lint`/`docstring` targets apply ruff to `tests` too — tests follow the same style rules as `src`.
 - Git hooks: **pre-commit blocks commits to `main`/`master`/`develop`** (work on a feature branch); pre-push runs security checks. Bypass only with `--no-verify` when truly necessary.
-- Coverage gate: `fail_under = 25` in `pyproject.toml`.
+- `make cover` produces an on-demand HTML report only — there is no coverage percentage gate in `pyproject.toml`.
 - The `Makefile` uses tabs — do not let an editor convert them to spaces (there's a warning banner at the top of the file).

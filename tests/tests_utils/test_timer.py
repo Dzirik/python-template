@@ -3,8 +3,8 @@ Tests for Timer class.
 """
 
 import time
-
-from pandas import DataFrame
+import warnings
+from datetime import datetime
 
 from src.utils.timer import Timer
 
@@ -70,15 +70,28 @@ def test_timer_get_data() -> None:
     time.sleep(0.02)
     timer.end("step_2", print_results_local=False)
 
-    mean_times, cumulative_times, labels, df = timer.get_data()
+    mean_times, cumulative_times, labels = timer.get_data()
 
     assert isinstance(mean_times, list)
     assert isinstance(cumulative_times, list)
     assert isinstance(labels, list)
-    assert isinstance(df, DataFrame)
     assert len(mean_times) == 2
     assert len(cumulative_times) == 2
     assert len(labels) == 2
+
+
+def test_timer_as_date_uses_local_time_without_deprecation_warning() -> None:
+    """
+    Tests that _as_date converts a timestamp using local wall-clock time (datetime.fromtimestamp), not the
+    deprecated datetime.utcfromtimestamp, and raises no DeprecationWarning while doing so.
+    """
+    timestamp = time.time()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        converted = Timer._as_date(timestamp)
+
+    assert converted == datetime.fromtimestamp(timestamp)
 
 
 def test_timer_multiple_checkpoints() -> None:
@@ -99,7 +112,7 @@ def test_timer_multiple_checkpoints() -> None:
 
     timer.end("final", print_results_local=False)
 
-    mean_times, _cumulative_times, labels, _df = timer.get_data()
+    mean_times, _cumulative_times, labels = timer.get_data()
 
     assert len(mean_times) == 4
     assert len(labels) == 4

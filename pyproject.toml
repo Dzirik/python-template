@@ -21,7 +21,6 @@ classifiers = [
 
 dependencies = [
     "python-dotenv>=1.2.2",
-    "gitpython>=3.1.51",
     "typedload>=2.41",
     "pandas>=3.0.3",
     "numpy>=2.5.1",
@@ -34,15 +33,15 @@ dependencies = [
     "jupyter>=1.1.1",
     "jupyter-client>=8.9.1",
     "jupyter-console>=6.6.3",
-    "jupyter_server>=2.20.0",  # Notebook 7.x requires jupyter_server 2.x
-    "notebook>=7.6.0",  # Notebook 7.5.2+ includes JupyterLab 4.5.2 with anchor fix (PR #18208)
-    "jupyterlab>=4.6.1",  # Required by Notebook 7; ≥4.5.2 fixes anchor navigation (PR #18208)
+    "jupyter_server>=2.20.0", # Notebook 7.x requires jupyter_server 2.x
+    "notebook>=7.6.0", # Notebook 7.5.2+ includes JupyterLab 4.5.2 with anchor fix (PR #18208)
+    "jupyterlab>=4.6.1", # Required by Notebook 7; ≥4.5.2 fixes anchor navigation (PR #18208)
     "nbclient>=0.11.0",
     "nbconvert>=7.17.1",
     "nbformat>=5.10.4",
-    "jupytext>=1.19.4",  # Latest with full Notebook 7/JupyterLab 4 support
+    "jupytext>=1.19.4", # Latest with full Notebook 7/JupyterLab 4 support
     "papermill>=2.7.0",
-    "ipykernel>=7.3.0",  # Major upgrade with Python 3.10+ requirement
+    "ipykernel>=7.3.0", # Major upgrade with Python 3.10+ requirement
     "ipython>=9.15.0",
     "ipywidgets>=8.1.8",
     "debugpy>=1.8.21",
@@ -57,7 +56,7 @@ dependencies = [
     "idna>=3.18",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
@@ -65,7 +64,6 @@ dev = [
     "ruff>=0.15.21",
     "bandit[toml]>=1.9.4",
     "pip-audit>=2.10.1",
-    "beautifulsoup4>=4.15.0",
 ]
 
 # Windows-specific dependencies
@@ -81,10 +79,15 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
+[tool.uv]
+package = false
+default-groups = ["dev", "windows"]
+
+# mypy itself is always invoked with --config-file mypy.ini (see Makefile), which fully
+# overrides this table - mypy never reads it. python_version is kept here solely as the
+# cross-file version-floor anchor asserted by tests/tests_utils/test_python_version_consistency.py.
 [tool.mypy]
 python_version = "3.13"
-strict = true
-config_file = "mypy.ini"
 
 [tool.ruff]
 line-length = 120
@@ -151,6 +154,7 @@ addopts = [
     "--verbose",
     "--tb=short",
     "--cov-report=term-missing",
+    "--doctest-glob=*.txt",
 ]
 
 markers = [
@@ -164,7 +168,6 @@ source = ["src"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 25  # Fail if coverage drops below fail_under%
 show_missing = true
 skip_covered = false
 

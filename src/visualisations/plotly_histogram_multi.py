@@ -1,6 +1,4 @@
 """
-Visualizer
-
 Visualizes multiple histograms.
 
 https://stackoverflow.com/questions/40629949/python-plotly-multiple-histogram-with-mean-line
@@ -26,9 +24,6 @@ class PlotlyHistogramMulti(PlotlyBase):
 
         self.set_histogram()
 
-    # pylint: disable=arguments-differ
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-locals
     def plot(
         self,
         data: list[ndarray[Any, dtype[Any]]],
@@ -36,7 +31,7 @@ class PlotlyHistogramMulti(PlotlyBase):
         x_title: str,
         group_labels: list[str],
         n_bins: int = 0,
-        x_axis_min_max: tuple[float] | None = None,
+        x_axis_min_max: tuple[float, float] | None = None,
         vertical_lines_positions: list[float] | None = None,
         dashboard: bool = False,
     ) -> go.Figure | None:
@@ -48,13 +43,14 @@ class PlotlyHistogramMulti(PlotlyBase):
         :param x_title: Description of the x-axis.
         :param group_labels: List[str]. List of names of each data list. Length has to be the same as of data list.
         :param n_bins: int. Number of n_bins to create. If 0, automatic n_bins selection is applied.
-        :param x_axis_min_max: Optional[Tuple[float]]. If None, the x-axis limits are set automatically, otherwise based
-               on first (min) and second (max) values of this tuple.
+        :param x_axis_min_max: Optional[Tuple[float, float]]. If None, the x-axis limits are set automatically,
+               otherwise based on first (min) and second (max) values of this tuple.
         :param vertical_lines_positions: List[float]. If not None, a list of x-axis coordinates for plotting a vertical
                line there.
-        :param dashboard: bool. If use in dash application or not.
-        :return: Optional[go.Figure]. If None, then plots the figure. Otherwise, it creates go.Figure to be plotted with
-        Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         traces = []
         for i, single_data in enumerate(data):
@@ -79,19 +75,10 @@ class PlotlyHistogramMulti(PlotlyBase):
             "yaxis_title": self._hist_func.capitalize(),
             "barmode": "overlay",
             "title": plot_title,
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
             "xaxis_range": x_axis_min_max,
         }
 
         lines = self._create_vertical_lines(vertical_lines_positions)
 
         return self._plot_single_figure(trace=traces, layout=layout, shapes=lines, dashboard=dashboard)
-
-    # pylint: enable=arguments-differ
-    # pylint: enable=too-many-arguments
-    # pylint: enable=too-many-locals
