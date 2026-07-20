@@ -10,18 +10,22 @@ classes. Solution which would handle it in general in python environment would b
 from abc import abstractmethod
 from typing import Any
 
-from src.utils.meta_class import TRANSFORMER_TYPE_NAME, MetaClass, TransformerDescription
+from src.utils.monitored_base import TRANSFORMER_TYPE_NAME, MonitoredBase, TransformerDescription
 
 __all__ = ["BaseTransformer", "TransformerDescription"]
 
 
-class BaseTransformer(MetaClass):
+class BaseTransformer(MonitoredBase):
     """
     Parent/base class for all transformers to ensure the same interface.
+
+    The fit/predict/fit_predict/inverse interface deliberately resembles sklearn's estimator contract but does not
+    conform to it: sklearn compatibility is a non-goal here. All configuration is expected to be supplied at
+    construction time, so fit takes only the data to fit on.
     """
 
     def __init__(self, class_name: str, transformer_description: TransformerDescription) -> None:
-        MetaClass.__init__(self, class_type=TRANSFORMER_TYPE_NAME, class_name=class_name)
+        MonitoredBase.__init__(self, class_type=TRANSFORMER_TYPE_NAME, class_name=class_name)
         self.set_transformer_description(transformer_description=transformer_description)
         self._params: dict[str, Any] = {}
 

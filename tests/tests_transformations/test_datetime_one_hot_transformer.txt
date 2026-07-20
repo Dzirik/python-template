@@ -1,4 +1,4 @@
->>> from src.transformations.datetime_one_hot_transformer import DatetimeOneHotEncoderTransformer
+>>> from src.transformations.datetime_one_hot_transformer import DatetimeOneHotEncoderTransformer, TimeAttributes
 >>> from tests.tests_transformations.test_datetime_one_hot_transformer import INPUT_DATA
 >>> from datetime import datetime
 >>> from pandas import DatetimeIndex
@@ -11,9 +11,10 @@ DatetimeIndex(['2016-01-01 00:01:00', '2016-10-01 01:01:00',
                '2018-12-24 22:01:00', '2019-01-01 23:01:00',
                '2019-10-01 11:01:00', '2019-12-24 12:01:00'],
               dtype='datetime64[...]', freq=None)
->>> transformer = DatetimeOneHotEncoderTransformer()
->>> output = transformer.fit_predict(dt_index=INPUT_DATA, add_hours=False, add_days_of_week=True, \
-... add_weekend=True, add_months=True, add_years=False, min_interval=0)
+>>> time_attributes = TimeAttributes(hours=False, days_of_week=True, weekend=True, months=True, years=False, \
+... min_interval=0)
+>>> transformer = DatetimeOneHotEncoderTransformer(time_attributes)
+>>> output = transformer.fit_predict(INPUT_DATA)
 >>> output_names = transformer.get_encoded_attribute_names()
 >>> pprint(output_names)
 ['DAY_OF_WEEK_0.0',

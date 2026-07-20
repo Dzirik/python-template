@@ -10,12 +10,9 @@ import tomllib
 from datetime import datetime
 from pathlib import Path
 from time import sleep
-from typing import Any
-
-import git
 
 from src.utils.envs import Envs
-from src.utils.helper_functions import print_in_color
+from src.utils.helper_functions import get_git_branch, print_in_color
 from src.utils.project_paths import ProjectPaths
 from src.utils.singleton_meta import Singleton
 from src.utils.timer import Timer
@@ -29,10 +26,10 @@ class Logger(metaclass=Singleton):
     Class for logging. Extends the functionality of standard logger with:
     - Possibility of setting different logger configurations from the config file based on the value of
       environment variable.
-    - Allows add time measurements from the timerer.
+    - Allows add time measurements from the timer.
     """
 
-    _logger: Any
+    _logger: logging.Logger
 
     def __init__(self) -> None:
         self._env = Envs()
@@ -43,17 +40,14 @@ class Logger(metaclass=Singleton):
 
         if not profile_file_path.exists():
             self._log_bad_file()
-            raise ValueError("Logger profile does not exit in the selected path.")
+            raise ValueError("Logger profile does not exist in the selected path.")
 
         self._load_profile(profile_file_path)
 
         self._logger = logging.getLogger(self._env.get_logger().replace("logger_", ""))
 
-        try:
-            branch_name = str(git.Repo(search_parent_directories=True).active_branch.name)
-        except (git.exc.InvalidGitRepositoryError, git.exc.GitCommandError, TypeError):
-            branch_name = "ERROR"
-        self._logger.info("Logger was created on %s in branche %s.", platform.node(), branch_name)
+        branch_name = get_git_branch()
+        self._logger.info("Logger was created on %s in branch %s.", platform.node(), branch_name)
 
     @staticmethod
     def _load_profile(profile_file_path: Path) -> None:
@@ -89,7 +83,7 @@ class Logger(metaclass=Singleton):
         file_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(file_format)
         logger.addHandler(file_handler)
-        logger.error("Logger profile does not exit in the selected path.")
+        logger.error("Logger profile does not exist in the selected path.")
 
     def start_timer(self, process_name: str) -> None:
         """
@@ -180,6 +174,22 @@ class Logger(metaclass=Singleton):
         self._logger.error(message)
         self._echo(message, color, on_color, attrs)
 
+    def exception(
+        self, message: str, color: str | None = None, on_color: str | None = None, attrs: list[str] | None = None
+    ) -> None:
+        """
+        Creates an error message together with the traceback of the exception currently being handled.
+
+        Mirrors error(), but delegates to the stdlib logger's exception() method (implying exc_info=True), so it
+        should be called from within an except block to capture a real traceback.
+        :param message: str. Log message.
+        :param color: str | None. Text color for the optional console echo; when None no echo is printed. Default None.
+        :param on_color: str | None. Background color for the optional console echo. Default None.
+        :param attrs: list[str] | None. Text attributes for the optional console echo. Default None.
+        """
+        self._logger.exception(message)
+        self._echo(message, color, on_color, attrs)
+
     def critical(
         self, message: str, color: str | None = None, on_color: str | None = None, attrs: list[str] | None = None
     ) -> None:
@@ -210,14 +220,14 @@ class Logger(metaclass=Singleton):
         stamped = f"{datetime.now().strftime('%y-%m-%d %H:%M:%S')}: {message}"
         print_in_color(stamped, color, on_color, attrs)
 
-    def get(self) -> Any:
+    def get(self) -> logging.Logger:
         """
         Gets the underlying stdlib logger instance.
 
         Used by callers that need stdlib-only functionality this wrapper does not expose (e.g. attaching a
         supplemental handler, or logging with ``exc_info=True``) - see ``src/scripts_production/watchdog.py`` and
         ``src/scripts_production/checker.py``.
-        :return: Any. The underlying stdlib logger.
+        :return: logging.Logger. The underlying stdlib logger.
         """
         return self._logger
 
@@ -244,6 +254,11 @@ if __name__ == "__main__":
     my_logger.warning("warning")
     my_logger.error("error")
     my_logger.critical("error")
+
+    try:
+        raise ValueError("demo error")
+    except ValueError:
+        my_logger.exception("exception with traceback")
 
     # colored console echo demonstration
     my_logger.info("info with echo", color="green")

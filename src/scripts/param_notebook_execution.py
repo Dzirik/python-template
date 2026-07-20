@@ -11,7 +11,6 @@ Version: 2.0
 src/scripts> python param_notebook_execution.py
 """
 
-import platform
 import sys
 from pathlib import Path
 from typing import Any
@@ -19,13 +18,11 @@ from typing import Any
 sys.path += [str(Path.cwd() / ".."), str(Path.cwd() / "../..")]  # one and two up
 
 from src.utils.notebooks_executioner import NotebookExecutioner, NotebookExecutionerNamedTuple
-from src.utils.notebooks_executioner_linux import NotebookExecutionerLinux
 
 # OVERALL SETTING ######################################################################################################
 NOTEBOOK_PATH = "../../notebooks/template/template_parameterized_execution_notebook.ipynb"
 OUTPUT_FOLDER = "../../data/auto_notebooks_results"
 NUMBER_OF_PROCESSES = 3  # 1, 3, 20
-WIN_OR_LINUX = platform.system()  # platform.system() # platform.system() "Linux" "Windows"
 # (END) OVERALL SETTING ################################################################################################
 
 # LIST_OF_NTB_PARAMS DEFINITION ########################################################################################
@@ -78,10 +75,6 @@ NOTEBOOK_EXECUTIONER_NAMED_TUPLE = NotebookExecutionerNamedTuple(
 )
 
 if __name__ == "__main__":
-    notebook_executioner: NotebookExecutionerLinux | NotebookExecutioner
-    if WIN_OR_LINUX == "Linux":
-        notebook_executioner = NotebookExecutionerLinux(params=NOTEBOOK_EXECUTIONER_NAMED_TUPLE)
-    else:
-        notebook_executioner = NotebookExecutioner(params=NOTEBOOK_EXECUTIONER_NAMED_TUPLE)
+    notebook_executioner: NotebookExecutioner = NotebookExecutioner(params=NOTEBOOK_EXECUTIONER_NAMED_TUPLE)
     notebook_executioner.set_list_of_notebook_params(list_of_ntb_params=LIST_OF_NTB_PARAMS)
     notebook_executioner.execute()

@@ -21,6 +21,7 @@ from src.constants.env_constants import (
     ENV_PROJECT_ROOT,
     ENV_RUNNING_UNIT_TESTS,
 )
+from src.utils.singleton_meta import Singleton
 
 # Load .env file if it exists
 _env_path = Path(__file__).parent.parent.parent / ".env"
@@ -42,8 +43,27 @@ class Envs:
     def set_config(value: str) -> None:
         """
         Sets the environmental variable for config singleton with value.
+
+        Raises NotValidOperation if the ApplicationConfig singleton has already been instantiated - writing
+        the variable at that point would be silently ignored by the cached instance (it never re-reads this
+        variable), which is an ordering trap. Call Singleton.reset() first (test-only) to re-open the
+        legitimate "before instantiation" window if a reset-then-reconfigure sequence is intended.
+
+        ApplicationConfig, NotValidOperation and ExceptionExecutioner are imported lazily inside this method
+        rather than at module level, because ApplicationConfig itself imports Envs - a module-level import
+        here would create an import cycle.
         :param value: str. Value to be set without .conf.
         """
+        from src.exceptions.development_exception import NotValidOperation  # noqa: PLC0415
+        from src.exceptions.exception_executioner import ExceptionExecutioner  # noqa: PLC0415
+        from src.utils.application_config import ApplicationConfig  # noqa: PLC0415
+
+        if ApplicationConfig in Singleton._instances:
+            ExceptionExecutioner(NotValidOperation).log_and_raise(
+                "Envs.set_config() was called after ApplicationConfig was already instantiated - the new "
+                "value would be silently ignored by the cached singleton. Call Singleton.reset() first if a "
+                "reset-then-reconfigure sequence is intended (test-only)."
+            )
         environ[ENV_CONFIG] = value
 
     @staticmethod
@@ -61,8 +81,23 @@ class Envs:
     def set_logger(value: str) -> None:
         """
         Sets the environmental variable for logger singleton with value.
+
+        Raises NotValidOperation if the Logger singleton has already been instantiated, mirroring
+        set_config's guard against the same silent-no-op ordering trap. Logger is imported lazily inside this
+        method for the same reason ApplicationConfig is imported lazily in set_config: Logger imports Envs at
+        module level, so a module-level import here would create an import cycle.
         :param value: str. Value to be set without .conf.
         """
+        from src.exceptions.development_exception import NotValidOperation  # noqa: PLC0415
+        from src.exceptions.exception_executioner import ExceptionExecutioner  # noqa: PLC0415
+        from src.utils.logger import Logger  # noqa: PLC0415
+
+        if Logger in Singleton._instances:
+            ExceptionExecutioner(NotValidOperation).log_and_raise(
+                "Envs.set_logger() was called after Logger was already instantiated - the new value would be "
+                "silently ignored by the cached singleton. Call Singleton.reset() first if a "
+                "reset-then-reconfigure sequence is intended (test-only)."
+            )
         environ[ENV_LOGGER] = value
 
     @staticmethod

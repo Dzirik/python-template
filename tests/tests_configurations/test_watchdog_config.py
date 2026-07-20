@@ -54,7 +54,7 @@ def test_watchdog_config_get_data_returns_non_empty_workers(config_file_name: st
 def test_watchdog_config_get_class_name_returns_watchdog_config(config_file_name: str) -> None:
     """
     Tests that WatchdogConfig registers its own class name (not a copy-pasted, unrelated identity) at the
-    MetaClass seam used for unified monitoring/logging.
+    MonitoredBase seam used for unified monitoring/logging.
     :param config_file_name: str. Name of the watchdog config file, without the .toml extension.
     """
     assert WatchdogConfig(config_file_name).get_class_name() == "WatchdogConfig"

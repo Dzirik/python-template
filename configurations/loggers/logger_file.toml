@@ -18,6 +18,9 @@ level = "DEBUG"
 formatter = "full_formatter"
 filename = "logs/python_log.log"
 
+# Root level policy: DEBUG (full verbosity). This handler has no size cap, so nothing is lost
+# keeping every level. See "logger_file_limit.toml"/"logger_file_limit_console.toml" for the
+# deliberate INFO divergence used by byte-capped rotating-file profiles.
 [root]
 level = "DEBUG"
 handlers = ["file_handler"]

@@ -30,6 +30,11 @@ level = "DEBUG"
 formatter = "full_formatter"
 stream = "ext://sys.stdout"
 
+# Root level policy: INFO — a deliberate divergence from the unlimited "logger_file.toml"/
+# "logger_console.toml" profiles (which stay at DEBUG). The file handler here is a byte-capped
+# RotatingFileHandler (5MB, 2 backups); DEBUG-level noise would burn through that budget quickly
+# and evict older, more meaningful entries, so root is raised to INFO to conserve it (this also
+# caps the console handler at INFO, since root filters before either handler is reached).
 [root]
 level = "INFO"
 handlers = ["file_handler", "console_handler"]

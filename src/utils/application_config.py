@@ -43,11 +43,19 @@ class ApplicationConfig(metaclass=Singleton):
     Takes settings from environmental variables or uses default "python_local.conf".
 
     Methods should the same as in src/utils/base_component_config.py
+
+    The selected profile (Envs().get_config()) is deep-merged, as a partial overlay, over the tracked
+    "python_repo" base profile - see ADR 0006. ``name`` on the resulting data is set authoritatively from the
+    selection itself, not read from the TOML file: a partial overlay never needs to restate ``name``, and a
+    mislabelled profile file cannot misreport its identity.
     """
 
     def __init__(self) -> None:
         self._env: Envs = Envs()
-        self._data: ApplicationConfigData = load_config(self._env.get_config(), ApplicationConfigData)
+        self._data: ApplicationConfigData = load_config(
+            self._env.get_config(), ApplicationConfigData, base_name="python_repo"
+        )
+        self._data = self._data._replace(name=self._env.get_config())
 
         root = ProjectPaths().root
         self._data = self._data._replace(

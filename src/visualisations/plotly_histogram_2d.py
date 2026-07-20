@@ -26,9 +26,6 @@ class PlotlyHistogram2D(PlotlyBase):
         self._default_colorscale = "Viridis"
         self._figure_size = {"autosize": False, "width": 800, "height": 800}
 
-    # pylint: disable=arguments-differ
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-locals
     def plot(
         self,
         hist: ndarray[Any, dtype[Any]],
@@ -54,9 +51,10 @@ class PlotlyHistogram2D(PlotlyBase):
                           "Inferno", "Magma", "Cividis", "Hot", "Blues", "Greens". Defaults to "Viridis".
         :param show_colorbar: bool. Whether to display the colorbar. Defaults to True.
         :param square: bool. Whether to create a square-shaped plot with equal aspect ratio. Defaults to True.
-        :param dashboard: bool. Whether to use in a dash application.
-        :return: Optional[go.Figure]. Returns None and displays the figure, or returns go.Figure
-                for use with Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         trace = go.Heatmap(
             z=hist.T,  # Transpose to match conventional orientation
@@ -91,12 +89,7 @@ class PlotlyHistogram2D(PlotlyBase):
                 ),
                 "linecolor": self._colors["line"][0],
             },
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
             "margin": {"l": 80, "r": 50, "t": 80, "b": 80},
         }
 
@@ -107,7 +100,3 @@ class PlotlyHistogram2D(PlotlyBase):
             yaxis["scaleratio"] = 1
 
         return self._plot_single_figure(trace=trace, layout=layout, dashboard=dashboard)
-
-    # pylint: enable=arguments-differ
-    # pylint: enable=too-many-arguments
-    # pylint: enable=too-many-locals

@@ -4,6 +4,7 @@ Tests for Logger class.
 
 import ast
 import inspect
+import logging
 import os
 import re
 import subprocess
@@ -37,49 +38,68 @@ def test_logger_initialization() -> None:
     assert logger.get() is not None
 
 
-def test_logger_debug() -> None:
+def test_logger_debug(caplog: pytest.LogCaptureFixture) -> None:
     """
-    Tests debug logging level.
+    Tests that debug() emits the message as a DEBUG-level record.
+
+    Relies on logger_console.toml's root level staying DEBUG (the profile forced by conftest.py's
+    session-autouse fixture for all tests), otherwise the record would never reach the root handler caplog
+    attaches to.
     """
     logger = Logger()
-    # Should not raise any exceptions
-    logger.debug("Test debug message")
+    with caplog.at_level(logging.DEBUG):
+        logger.debug("Test debug message")
+    matching_records = [record for record in caplog.records if record.message == "Test debug message"]
+    assert len(matching_records) == 1
+    assert matching_records[0].levelno == logging.DEBUG
 
 
-def test_logger_info() -> None:
+def test_logger_info(caplog: pytest.LogCaptureFixture) -> None:
     """
-    Tests info logging level.
-    """
-    logger = Logger()
-    # Should not raise any exceptions
-    logger.info("Test info message")
-
-
-def test_logger_warning() -> None:
-    """
-    Tests warning logging level.
+    Tests that info() emits the message as an INFO-level record.
     """
     logger = Logger()
-    # Should not raise any exceptions
-    logger.warning("Test warning message")
+    with caplog.at_level(logging.DEBUG):
+        logger.info("Test info message")
+    matching_records = [record for record in caplog.records if record.message == "Test info message"]
+    assert len(matching_records) == 1
+    assert matching_records[0].levelno == logging.INFO
 
 
-def test_logger_error() -> None:
+def test_logger_warning(caplog: pytest.LogCaptureFixture) -> None:
     """
-    Tests error logging level.
-    """
-    logger = Logger()
-    # Should not raise any exceptions
-    logger.error("Test error message")
-
-
-def test_logger_critical() -> None:
-    """
-    Tests critical logging level.
+    Tests that warning() emits the message as a WARNING-level record.
     """
     logger = Logger()
-    # Should not raise any exceptions
-    logger.critical("Test critical message")
+    with caplog.at_level(logging.DEBUG):
+        logger.warning("Test warning message")
+    matching_records = [record for record in caplog.records if record.message == "Test warning message"]
+    assert len(matching_records) == 1
+    assert matching_records[0].levelno == logging.WARNING
+
+
+def test_logger_error(caplog: pytest.LogCaptureFixture) -> None:
+    """
+    Tests that error() emits the message as an ERROR-level record.
+    """
+    logger = Logger()
+    with caplog.at_level(logging.DEBUG):
+        logger.error("Test error message")
+    matching_records = [record for record in caplog.records if record.message == "Test error message"]
+    assert len(matching_records) == 1
+    assert matching_records[0].levelno == logging.ERROR
+
+
+def test_logger_critical(caplog: pytest.LogCaptureFixture) -> None:
+    """
+    Tests that critical() emits the message as a CRITICAL-level record.
+    """
+    logger = Logger()
+    with caplog.at_level(logging.DEBUG):
+        logger.critical("Test critical message")
+    matching_records = [record for record in caplog.records if record.message == "Test critical message"]
+    assert len(matching_records) == 1
+    assert matching_records[0].levelno == logging.CRITICAL
 
 
 def test_logger_timer_integration() -> None:
@@ -140,6 +160,7 @@ def test_logger_get_method() -> None:
     logger = Logger()
     underlying_logger = logger.get()
     assert underlying_logger is not None
+    assert isinstance(underlying_logger, logging.Logger)
 
 
 def test_logger_info_echo_prints_timestamped_line(capsys: pytest.CaptureFixture[str]) -> None:
@@ -175,6 +196,38 @@ def test_logger_echo_does_not_raise_across_levels(capsys: pytest.CaptureFixture[
     logger.warning("msg", color="yellow")
     logger.error("msg", color="red")
     logger.critical("msg", color="magenta")
+    captured = capsys.readouterr()
+    assert ECHO_TIMESTAMP_PATTERN.search(captured.out) is not None
+
+
+def test_logger_exception_logs_with_traceback(caplog: pytest.LogCaptureFixture) -> None:
+    """
+    Tests that exception() logs the message together with the currently handled exception's traceback.
+    """
+    logger = Logger()
+
+    with caplog.at_level(logging.ERROR):
+        try:
+            raise ValueError("boom")
+        except ValueError:
+            logger.exception("Test exception message")
+
+    matching_records = [record for record in caplog.records if record.message == "Test exception message"]
+    assert len(matching_records) == 1
+    assert matching_records[0].exc_info is not None
+
+
+def test_logger_exception_echo_prints_timestamped_line(capsys: pytest.CaptureFixture[str]) -> None:
+    """
+    Tests that exception() with a color echoes a timestamp-prefixed copy of the message to stdout.
+    """
+    logger = Logger()
+
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        logger.exception("msg", color="red")
+
     captured = capsys.readouterr()
     assert ECHO_TIMESTAMP_PATTERN.search(captured.out) is not None
 

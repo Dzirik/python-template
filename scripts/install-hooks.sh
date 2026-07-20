@@ -1,14 +1,13 @@
 #!/bin/bash
 # Install Git hooks for the repository
-# This script copies pre-push hook to .git/hooks/
+# Points core.hooksPath at the tracked scripts/hooks directory instead of copying files into
+# .git/hooks, so edits to the tracked hooks take effect immediately with no re-install step.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-HOOKS_DIR="$REPO_ROOT/.git/hooks"
-PRE_COMMIT_HOOK="$HOOKS_DIR/pre-commit"
-PRE_PUSH_HOOK="$HOOKS_DIR/pre-push"
+HOOKS_PATH="scripts/hooks"
 
 echo "Installing Git hooks..."
 
@@ -18,18 +17,10 @@ if [ ! -d "$REPO_ROOT/.git" ]; then
     exit 1
 fi
 
-# Create hooks directory if it doesn't exist
-mkdir -p "$HOOKS_DIR"
+# Ensure the tracked hooks are executable (git on some platforms does not preserve the bit)
+chmod +x "$REPO_ROOT/$HOOKS_PATH/pre-commit" "$REPO_ROOT/$HOOKS_PATH/pre-push"
 
-# Copy pre-commit hook
-echo "Installing pre-commit hook (blocks commits to main/develop)..."
-cp "$SCRIPT_DIR/pre-commit" "$PRE_COMMIT_HOOK"
-chmod +x "$PRE_COMMIT_HOOK"
-
-# Copy pre-push hook
-echo "Installing pre-push hook (security checks on changed files)..."
-cp "$SCRIPT_DIR/pre-push" "$PRE_PUSH_HOOK"
-chmod +x "$PRE_PUSH_HOOK"
+git config core.hooksPath "$HOOKS_PATH"
 
 echo ""
 echo "Git hooks installed successfully!"
@@ -42,4 +33,3 @@ echo "To bypass hooks (not recommended):"
 echo "  - Skip pre-commit: git commit --no-verify"
 echo "  - Skip pre-push: git push --no-verify"
 echo ""
-

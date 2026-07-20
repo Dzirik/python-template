@@ -24,6 +24,10 @@ mode = "a"
 maxBytes = 5_242_880
 backupCount = 2 # number of backup files
 
+# Root level policy: INFO — a deliberate divergence from the unlimited "logger_file.toml"/
+# "logger_console.toml" profiles (which stay at DEBUG). This handler is a byte-capped
+# RotatingFileHandler (5MB, 2 backups); DEBUG-level noise would burn through that budget quickly
+# and evict older, more meaningful entries, so root is raised to INFO to conserve it.
 [root]
 level = "INFO"
 handlers = ["file_handler"]

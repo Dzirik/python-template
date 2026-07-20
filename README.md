@@ -33,6 +33,7 @@
 - [Marimo Notebooks](#marimo-notebooks)
     - [Why Marimo](#why-marimo)
     - [Marimo Folder Structure](#marimo-folder-structure)
+    - [The `src`-Import Bootstrap Pattern](#the-src-import-bootstrap-pattern)
     - [Getting Started with Marimo](#getting-started-with-marimo)
     - [Interactive Visualizations with Plotly](#interactive-visualizations-with-plotly)
 
@@ -44,7 +45,7 @@ This is a **batteries-included, Windows-first Python template for data-oriented 
 
 Included out of the box:
 - **Logger system** with multiple configurations (file, console, size limits)
-- **Configuration management** using HOCON format + environment variables
+- **Configuration management** using TOML profiles (a tracked base plus optional partial overlays, see [ADR 0006](docs/adr/0006-config-tracked-base-and-overlays.md)) + environment variables
 - **Exception handling** with structured error codes and automatic logging
 - **Data transformers** with sklearn-style base class and an example datetime one-hot encoder
 - **Notebook workflows** — Jupyter (jupytext-paired) and Marimo reactive notebooks, plus Plotly visualisation helpers
@@ -63,8 +64,8 @@ Included out of the box:
 **Required:**
 - Windows 10/11 or Linux (Ubuntu 20.04+)
 - Make command (Windows: install via [Cygwin](https://www.cygwin.com/) with binutils and make packages)
-- UV package manager (see installation below)
-- Python 3.13 (recommended) or Python 3.13-3.14 (see `docs/LIBRARIES_LIST.md` for version details)
+- UV package manager (see installation below) — `uv` also installs and pins the Python interpreter itself
+- Python 3.13 (recommended) or 3.14 — both are exercised in CI (see [GitHub Actions CI/CD](#github-actions))
 
 **UV Installation:**
 
@@ -95,35 +96,50 @@ cd <repository-name>
 make hello
 
 # 3. Create virtual environment (automatically sets up repository files)
-make create-venv          # Windows
-make create-venv-linux    # Linux/macOS
+# Same target on Windows and Linux/macOS — it detects the OS itself.
+make create-venv
 
 # 4. Activate virtual environment
 .venv\Scripts\activate    # Windows
 source .venv/bin/activate # Linux/macOS
 
 # 5. Install Git pre-push hooks (optional but recommended)
-make install-hooks        # Windows
-make install-hooks-linux  # Linux/macOS
+# Same target on Windows and Linux/macOS — it detects the OS itself.
+make install-hooks
 
-# 6. Run tests to verify setup
-make all -i
+# 6. Run all quality checks to verify setup
+make all
 ```
 
 The `make create-venv` command automatically sets up repository files and creates:
-- `make_config.mk` (from template)
-- `configurations/python_personal.conf` (from python_repo.conf)
-- `.env` file (empty, for environment variables)
-- Virtual environment with Python 3.13 and all dependencies
+- `make_config.mk` (from `make_config_template.mk`)
+- `configurations/python_personal.toml` — a commented, empty partial overlay (see [Configuration](#configuration)); left as-is, the tracked `python_repo` base profile is used
+- `.env` file (from `.env.example`)
+- `notebooks/raw/playground_notebook.py` (from `notebooks/template/template_notebook_final.py`)
+- `marimo/raw/playground_marimo.py` (from `marimo/template/template_notebook.py`)
+- Virtual environment with Python 3.13 and all dependencies (the `dev` and `windows` dependency groups)
+
+> **Note:** `make all` stops at the first failing check by design — that is the gate every push and CI run must pass.
+> There is no `-i` ("ignore errors") flag to run around it; if a step fails, fix it before continuing.
 
 <a name="configuration"></a>
 ## Configuration
 [ToC](#table-of-content)
 
-**Configuration Files:**
-- `configurations/python_repo.conf` - Template configuration (version controlled)
-- `configurations/python_personal.conf` - Personal config (created by setup, not version controlled)
-- `configurations/python_local.conf` - Example local development config with custom paths (version controlled)
+**Configuration model — tracked base plus optional partial overlays** (see
+[ADR 0006](docs/adr/0006-config-tracked-base-and-overlays.md)):
+
+- `configurations/python_repo.toml` - **The canonical, tracked base.** Always loaded first and the default when
+  no profile is selected. Version controlled.
+- `configurations/python_personal.toml` - An **optional, opt-in partial overlay** deep-merged over the base —
+  it only needs to set the keys it overrides; anything it omits falls back to `python_repo`. Generated as a
+  commented, empty template by `make create-venv`; git-ignored (per-developer).
+- `configurations/python_local.toml` - An example partial overlay for local development with a custom data
+  directory path. Version controlled (as a worked example, not personal data).
+
+Selecting a profile whose file is absent is a loud error; a present-but-partial overlay is not — any key it
+doesn't set simply falls back to the base. The profile's `name` is always set from the selection
+(`ENV_CONFIG`) itself, never read from the file.
 
 **Environment Variables (.env file):**
 
@@ -136,8 +152,8 @@ The repository uses a `.env` file for user-specific configuration and sensitive 
 
 **Default settings in `.env.example`:**
 ```bash
-# Configuration file to use (without .conf extension)
-ENV_CONFIG=python_personal
+# Configuration file to use (without .toml extension)
+ENV_CONFIG=python_repo
 
 # Logger configuration to use (without .toml extension)
 ENV_LOGGER=logger_file_limit_console
@@ -146,11 +162,17 @@ ENV_LOGGER=logger_file_limit_console
 ENV_RUNNING_UNIT_TESTS=False
 ```
 
+`python_repo` is the default so a fresh clone (and CI, which never runs `make create-venv`) has a working
+configuration with no setup step required.
+
 **Customizing your environment:**
 
 1. **Edit `.env` file** to change defaults:
    ```bash
-   # Use a different config file
+   # Opt into your personal partial overlay (generated by make create-venv)
+   ENV_CONFIG=python_personal
+
+   # Or use the tracked local-development example overlay
    ENV_CONFIG=python_local
 
    # Use console-only logger
@@ -167,9 +189,11 @@ ENV_RUNNING_UNIT_TESTS=False
    export ENV_LOGGER=logger_console
    ```
 
-**Using python_local.conf:**
+**Using python_local.toml:**
 
-The `python_local.conf` file provides an example configuration for local development with a custom data directory path (e.g., `E:/DATA` instead of `../../data`).
+The `python_local.toml` file is a worked example of a partial overlay for local development with a custom data
+directory path (e.g. `E:/DATA`) — it only needs to set the `path.data` key it overrides; every other key falls
+back to `python_repo.toml`.
 
 To use it:
 ```bash
@@ -180,10 +204,10 @@ ENV_CONFIG=python_local
 export ENV_CONFIG=python_local
 ```
 
-Or create your own custom configuration:
+Or create your own custom overlay:
 ```bash
-cp configurations/python_local.conf configurations/python_custom.conf
-# Edit python_custom.conf with your custom settings
+cp configurations/python_local.toml configurations/python_custom.toml
+# Edit python_custom.toml, setting only the keys you want to override
 # Then set in .env: ENV_CONFIG=python_custom
 ```
 
@@ -214,14 +238,16 @@ This repository contains the full structure for a data-oriented Python project w
         - *minimal_repo_structure.mmd* - Mermaid diagram of repository structure
         - *minimal_repo_tree.txt* - Text-based tree structure with file descriptions
 - *configurations*
-    - A folder for configuration files (.conf files using HOCON format).
+    - A folder for configuration files (TOML files, parsed by the stdlib `tomllib`).
     - Contains:
         - *loggers/logger_console.toml* - Console-only logging configuration
         - *loggers/logger_file.toml* - File-only logging configuration
         - *loggers/logger_file_console.toml* - File + console logging configuration
         - *loggers/logger_file_limit.toml* - File logging with size limit (5MB, 2 backups)
         - *loggers/logger_file_limit_console.toml* - File limit + console logging configuration
-        - *python_repo.conf* - Python configuration template (paths, database credentials)
+        - *python_repo.toml* - Tracked base config profile (paths, notebook execution parameters); see [Configuration](#configuration)
+        - *python_local.toml* - Tracked example partial overlay (custom data path)
+        - *python_personal.toml* - Git-ignored personal partial overlay, generated by `make create-venv`
 - *data*
     - A folder for storing data files. **It is not a good practice to keep large data files in version control**.
     - This folder is empty by default and excluded from version control.
@@ -232,7 +258,8 @@ This repository contains the full structure for a data-oriented Python project w
         - *PROJECT_VISION.md* - The template's purpose, scope, guiding principles, constraints, and roadmap
         - *CHANGELOG.md* - Version history
         - *tutorials/* - Task-oriented how-to guides: `CHECKER_SCHEDULER_SET_UP.md`, `PERSISTENT_RUN.md`, and video walkthroughs (e.g. Cygwin/make set up)
-        - *meta/* - Template maintenance docs: `JUPYTER_ECOSYSTEM.md` (Notebook 7 migration), `TESTING_CHECKLIST.md`
+        - *meta/* - Template maintenance docs: `JUPYTER_ECOSYSTEM.md` (Notebook 7 migration); the historical `TESTING_CHECKLIST.md` has been removed (see [Testing Checklist](#testing-checklist))
+        - *adr/* - Architecture Decision Records, e.g. [ADR 0006](docs/adr/0006-config-tracked-base-and-overlays.md) (config base/overlay model), [ADR 0007](docs/adr/0007-watchdog-supervision-semantics.md) (watchdog supervision semantics)
         - *notebooks_freezes/* - HTML exports of the `notebooks/documentation/` notebooks, for offline reference
 - *logs*
     - For log files generated by the logger system.
@@ -312,7 +339,7 @@ This repository contains the full structure for a data-oriented Python project w
 
 - *.gitignore*
     - Excludes files and folders from version control. Configured to exclude:
-        - Personal configuration files (*python_personal.conf*, *make_config.mk*)
+        - Personal configuration files (*python_personal.toml*, *make_config.mk*)
         - Data files and directories (*data/*, *logs/*)
         - Python cache and build artifacts (*\_\_pycache\_\_*, *.pyc*, *.egg-info*)
         - Virtual environments (*.venv/*, *venv/*)
@@ -352,7 +379,7 @@ This repository contains the full structure for a data-oriented Python project w
         - Code quality checks (*make mypy*, *make format-check*, *make lint-check*)
         - Testing (*make test*, *make all*)
         - Coverage reports (*make cover*)
-    - Uses UV package manager with *uv run --no-project* commands.
+    - Uses the UV package manager; all Python invocations go through plain *uv run*.
 - *make_config_template.mk*
     - Template for make configuration file.
     - Copy this to *make_config.mk* and customize for your local setup.
@@ -366,9 +393,14 @@ This repository contains the full structure for a data-oriented Python project w
     - Contains:
         - Project metadata (name, version, description, authors)
         - Python version requirement (*requires-python = ">=3.13,<3.15"*)
-        - All project dependencies (7 runtime + 6 dev libraries)
+        - Runtime dependencies plus the `dev` and `windows` dependency groups (`[dependency-groups]`) —
+          `add-lib`/`remove-lib` (and their `-win` variants) operate on these groups
         - Tool configurations (mypy, ruff, pytest, coverage, bandit)
-    - Supports Python 3.13 and 3.14 (see LIBRARIES_LIST.md for version details)
+    - Supports Python 3.13 and 3.14; both are exercised in CI (see [GitHub Actions CI/CD](#github-actions))
+- *uv.lock*
+    - Lock file for the *UV* package manager, pinning every resolved dependency version.
+    - **Committed to the repository** for reproducible installs — never hand-edit it; regenerate it with
+      `make lock` after changing `pyproject.toml`, or let `make add-lib`/`make remove-lib` update it for you.
 - *README.md*
     - Main documentation file (this file).
     - Comprehensive guide to repository structure, setup, and usage.
@@ -383,13 +415,11 @@ These files are created by *make create-venv* or during development and are excl
 - *make_config.mk*
     - Local configuration file for make commands (created by copying *make_config_template.mk*).
     - Contains customized paths and settings for your local environment.
-- *configurations/python_personal.conf*
-    - Personal Python configuration file (created by copying *python_repo.conf*).
-    - Customize paths, database credentials, and other settings here.
-- *uv.lock*
-    - Lock file for Python *UV* package manager (created by *uv sync* or *uv lock*).
-    - Ensures reproducible dependency installations.
-    - **Note:** Not included in the template - will be generated when you set up the environment.
+- *configurations/python_personal.toml*
+    - Personal partial-overlay config profile (generated as a commented, empty template — see
+      [Configuration](#configuration)).
+    - Customize only the keys you want to override; anything left commented out falls back to
+      `python_repo.toml`.
 
 <a name="code-quality"></a>
 # Code Quality
@@ -476,7 +506,11 @@ Pytest is a testing framework for building simple and scalable tests.
 ### Testing Checklist
 [ToC](#table-of-content)
 
-For a full end-to-end verification flow when cloning or deploying this template, follow the checklist in `docs/meta/TESTING_CHECKLIST.md`. It covers setup, quality gates, tests, security checks, hooks, and CI verification.
+The historical, pre-uv/pre-ADR-0006 end-to-end verification checklist that used to live at
+`docs/meta/TESTING_CHECKLIST.md` has been removed — it was never a getting-started resource, and its content
+(written for a "Minimal Template" on an older Python line) no longer matched this repository. For getting a
+fresh clone running, use [Installation](#installation) above; for the day-to-day quality gate, use `make all` /
+`make all-secure`.
 
 ### Coverage
 [ToC](#table-of-content)
@@ -572,11 +606,8 @@ This repository includes optional **Git hooks** that help maintain code quality 
 ### Installation
 
 ```bash
-# Windows
+# Windows and Linux/macOS - detects the OS itself
 make install-hooks
-
-# Linux/macOS
-make install-hooks-linux
 ```
 
 Or manually:
@@ -713,7 +744,8 @@ The CI workflow (`.github/workflows/ci.yml`) automatically runs `make all-secure
 - ✅ **Bandit** - Security vulnerability scanning in source code
 - ✅ **pip-audit** - Dependency vulnerability scanning
 
-The workflow tests against **Python 3.13 and 3.14** to ensure compatibility.
+The workflow runs a **4-job matrix**: `{ubuntu-latest, windows-latest} × {Python 3.13, 3.14}`. `astral-sh/setup-uv`
+installs `uv` and picks the interpreter for each job directly (there is no separate `actions/setup-python` step).
 
 ### How to Set It Up
 
@@ -770,9 +802,10 @@ make security-check
 
 The workflow is configured in `.github/workflows/ci.yml`:
 - **Triggers:** Pull requests and pushes to `main`/`develop`
-- **Python versions:** 3.13, 3.14 (matrix testing)
-- **Package manager:** UV (with caching for faster runs)
-- **Main command:** `make all-secure` (includes security checks)
+- **Matrix:** `os: [ubuntu-latest, windows-latest]` × `python-version: ["3.13", "3.14"]` (4 jobs)
+- **Package manager:** `astral-sh/setup-uv` installs UV and the matrix Python interpreter, with caching enabled
+- **Main command:** `make all-secure` (includes security checks); `make` itself is installed via `choco install make`
+  on the Windows runners
 - **Artifacts:** Coverage reports (uploaded if available)
 
 ### Customization
@@ -780,7 +813,7 @@ The workflow is configured in `.github/workflows/ci.yml`:
 To modify the workflow:
 1. Edit `.github/workflows/ci.yml`
 2. Change the `branches` list to add/remove target branches
-3. Modify the `python-version` matrix to test different Python versions
+3. Modify the `matrix.os` / `matrix.python-version` lists to test different platforms or Python versions
 4. Add additional steps or commands as needed
 
 See [GitHub Actions documentation](https://docs.github.com/en/actions) for more information.
@@ -794,11 +827,8 @@ Common make commands for repository management. Run `make help` for full list.
 
 **Setup:**
 - `make hello` - Test make installation
-- `make create-venv` - Create virtual environment with automatic repository setup (Windows)
-- `make create-venv-linux` - Create virtual environment with automatic repository setup (Linux/macOS)
-- `make set-up-repo` - (Optional) Manually create config files only, without virtual environment
-- `make install-hooks` - Install Git hooks (pre-commit + pre-push for branch protection & security) - Windows
-- `make install-hooks-linux` - Install Git hooks (pre-commit + pre-push for branch protection & security) - Linux/macOS
+- `make create-venv` - Create virtual environment with automatic repository setup (detects Windows vs. Linux/macOS itself)
+- `make install-hooks` - Install Git hooks (pre-commit + pre-push for branch protection & security); detects the OS itself
 
 **Code Quality:**
 - `make mypy` - Type checking with mypy
@@ -811,31 +841,26 @@ Common make commands for repository management. Run `make help` for full list.
 - `make test` - Run pytest tests (compressed output)
 - `make test-detailed` - Run pytest tests (detailed output showing each test)
 - `make security-check` - Run security checks (bandit + pip-audit)
-- `make all -i` - Run all quality checks (mypy + format-check + lint-check + docstring-check + test)
-- `make all-secure -i` - Run all quality checks + security (same as CI/CD pipeline)
+- `make all` - Run all quality checks (mypy + format-check + lint-check + docstring-check + test); stops at the first failure
+- `make all-secure` - Run all quality checks + security (same as CI/CD pipeline); stops at the first failure
 - `make cover` - Generate coverage report (HTML in `coverage/` folder)
 
 **Jupyter Notebook:**
-- `make jupyter` - Start Jupyter Notebook server (run `make sync-install` first if encountering kernel errors)
+- `make jupyter` - Start Jupyter Notebook server (run `make sync` first if encountering kernel errors)
 
 **Marimo Notebooks:**
 - `make marimo` - Start Marimo editor in the marimo folder
 - `make marimo-app notebook=<filename.py>` - Run a Marimo notebook as an interactive app (e.g., `make marimo-app notebook=raw/my_notebook.py`)
 - `make marimo-new notebook=<filename.py>` - Create a new Marimo notebook (e.g., `make marimo-new notebook=raw/new_notebook.py`)
-- `make marimo-convert notebook=<path>` - Convert a Jupyter notebook to Marimo format (e.g., `make marimo-convert notebook=notebooks/raw/my_notebook.ipynb`)
+- `make marimo-convert notebook=<path>` - Convert a Jupyter notebook to Marimo format, writing the `.py` file next to the source `.ipynb` (e.g., `make marimo-convert notebook=notebooks/raw/my_notebook.ipynb` writes `notebooks/raw/my_notebook.py`)
 
-**Package Management:**
-- `make add-lib library=<name>` - Add library (e.g., `make add-lib library=pandas`)
-- `make remove-lib library=<name>` - Remove library
-- `make sync-deps` - Sync dependencies (update uv.lock from pyproject.toml)
-- `make sync-install` - Sync and install all dependencies
-- `make sync-install-dev` - Sync and install dev dependencies only
-
-**Dependency Locking:**
-- `make lock` - Update `uv.lock` from `pyproject.toml` (`uv lock`)
-
-**Dependency Synchronization:**
-- `make sync` - Install dependencies from `uv.lock` (`uv sync`)
+**Package Management (uv dependency groups: `dev`, `windows`):**
+- `make add-lib library=<name>` - Add a runtime library (e.g., `make add-lib library=pandas`)
+- `make add-lib-win library=<name>` - Add a library to the `windows` dependency group
+- `make remove-lib library=<name>` - Remove a runtime library
+- `make remove-lib-win library=<name>` - Remove a library from the `windows` dependency group
+- `make lock` - Update `uv.lock` from `pyproject.toml` (`uv lock`); never hand-edit `uv.lock` directly
+- `make sync` - Install dependencies exactly as pinned in `uv.lock` (`uv sync`)
 
 **Single File Quality (configure FILE_NAME and FILE_FOLDER in make_config.mk):**
 - `make mypy-f` - Type check single file
@@ -858,18 +883,13 @@ Utils:
  - make hello: Prints hello message.
 
 Repository Set Up & Virtual Environment:
- - make create-venv: Sets up repository files AND creates virtual environment named .venv on Windows.
+ - make create-venv: Sets up repository files AND creates virtual environment named .venv (Windows and Linux/macOS).
  - .venv\Scripts\activate: Activates virtual environment on Windows.
- - make create-venv-linux: Sets up repository files AND creates virtual environment named .venv on Linux/macOS.
- - make set-up-repo: (Optional) Manually sets up repository files only, without creating virtual environment.
  - source .venv/bin/activate: Activates virtual environment on Linux/macOS.
- - make add-lib library=<library>[==<version>]: Adds a library to the virtual environment.
- - make add-lib-win library=<library>[==<version>]: Adds a windows only library to the virtual environment.
+ - make add-lib library=<library>[==<version>]: Adds a library to the virtual environment (runtime dependencies).
+ - make add-lib-win library=<library>[==<version>]: Adds a library to the windows dependency group.
  - make remove-lib library=<library>: Removes a library from the virtual environment.
- - make remove-lib-win library=<library>: Removes a windows only library from the virtual environment.
- - make sync-deps: Syncs dependencies (updates uv.lock from pyproject.toml).
- - make sync-install: Syncs and installs all dependencies from uv.lock.
- - make sync-install-dev: Syncs and installs dev dependencies only.
+ - make remove-lib-win library=<library>: Removes a library from the windows dependency group.
 
 Dependency Locking:
  - make lock: Updates uv.lock from pyproject.toml (uv lock).
@@ -878,9 +898,7 @@ Dependency Synchronization:
  - make sync: Installs dependencies from uv.lock (uv sync).
 
 Optional Git Hooks:
- - make install-hooks: Installs Git hooks (Windows) - pre-commit: blocks commits to main/develop, pre-push: security checks.
- - make install-hooks-linux: Installs Git hooks (Linux/macOS) - pre-commit: blocks commits to main/develop, 
-                             pre-push: security checks.
+ - make install-hooks: Installs Git hooks (Windows and Linux/macOS, detects the OS itself) - pre-commit: blocks commits to main/develop, pre-push: security checks.
 
 Code Quality:
  - make mypy: MyPy type checking.
@@ -917,44 +935,25 @@ File-Specific Quality:
  - make test-f-detailed FILE_FOLDER=<folder> FILE_NAME=<name>: Pytest for specific file (detailed).
  - make all-f FILE_FOLDER=<folder> FILE_NAME=<name>: All checks for specific file (mypy + format-check + lint-check + docstring-check + test).
 
-## Make Documentation
-
 ### hello
 @HAIL TO YOU, HERO!!!
 @CONGRATULATIONS TO YOU RUNNING YOUR FIRST MAKE COMMAND!!
 
 ### create-venv
-@CREATES VIRTUAL ENVIRONMENT WITH AUTOMATIC REPOSITORY SETUP FOR WINDOWS
-Automatically sets up repository files and creates virtual environment:
+@CREATES VIRTUAL ENVIRONMENT WITH AUTOMATIC REPOSITORY SETUP
+Automatically sets up repository files and creates virtual environment (detects Windows vs. Linux/macOS itself):
  - Copies make_config_template.mk to make_config.mk
- - Copies python_repo.conf to python_personal.conf
- - Creates .env file
+ - Generates configurations/python_personal.toml as a commented, empty partial overlay (see ADR 0006)
+ - Creates .env file from .env.example
+ - Copies notebooks/template/template_notebook_final.py to notebooks/raw/playground_notebook.py
+ - Copies marimo/template/template_notebook.py to marimo/raw/playground_marimo.py
  - Installs Python 3.13
- - Creates venv .venv for Windows (all dependencies: base + [windows] + [dev])
-@
-
-### create-venv-linux
-@CREATES VIRTUAL ENVIRONMENT WITH AUTOMATIC REPOSITORY SETUP FOR LINUX/MACOS
-Automatically sets up repository files and creates virtual environment:
- - Copies make_config_template.mk to make_config.mk
- - Copies python_repo.conf to python_personal.conf
- - Creates .env file
- - Installs Python 3.13
- - Creates venv .venv for Linux/macOS (all dependencies: base + [dev])
-@
-
-### set-up-repo
-@MANUALLY SETS UP REPOSITORY FILES (OPTIONAL)
-Creates necessary files excluded from version control but needed for functionality.
- - Copies make_config_template.mk to make_config.mk
- - Copies python_repo.conf to python_personal.conf
- - Creates .env file
-Note: This is now automatically done by create-venv commands.
+ - Creates venv .venv (dev + windows dependency groups)
 @
 
 ### install-hooks
 @INSTALLS GIT HOOKS FOR BRANCH PROTECTION AND SECURITY
-Installs two Git hooks to improve workflow and security:
+Installs two Git hooks to improve workflow and security (detects Windows vs. Linux/macOS itself):
 
 1. Pre-Commit Hook (Branch Protection):
    - Blocks direct commits to main, master, and develop branches
@@ -970,32 +969,6 @@ Installs two Git hooks to improve workflow and security:
 
 Installation location:
  - Windows: Uses scripts/install-hooks.ps1
- - Hooks installed to: .git/hooks/
-
-Bypassing hooks (not recommended):
- - Skip pre-commit: git commit --no-verify
- - Skip pre-push: git push --no-verify
-
-Note: Even if bypassed locally, PR workflow still enforces all checks.
-@
-
-### install-hooks-linux
-@INSTALLS GIT HOOKS FOR BRANCH PROTECTION AND SECURITY
-Installs two Git hooks to improve workflow and security:
-
-1. Pre-Commit Hook (Branch Protection):
-   - Blocks direct commits to main, master, and develop branches
-   - Enforces feature branch workflow
-   - Shows helpful instructions when blocked
-   - Prevents accidental commits to protected branches
-
-2. Pre-Push Hook (Security Checks):
-   - Runs Bandit security scanner on changed Python files
-   - Fast feedback (< 5 seconds, only scans changes)
-   - Catches security issues before push
-   - Complements full CI/CD security scan
-
-Installation location:
  - Linux/macOS: Uses scripts/install-hooks.sh
  - Hooks installed to: .git/hooks/
 
@@ -1094,55 +1067,6 @@ Use this when:
  - You pull repository changes with lock file updates
  - You need to align your environment with committed dependencies
  - You want a reproducible environment install
-@
-
-### sync-deps
-@SYNCS DEPENDENCIES (UPDATES UV.LOCK FROM PYPROJECT.TOML)
-Updates the uv.lock file based on the current pyproject.toml dependencies.
-Use this when you manually edit pyproject.toml or install packages outside of make commands.
-
-Usage: make sync-deps
-
-When to use:
- - After manually editing pyproject.toml dependencies
- - After installing packages with 'uv add' directly
- - When uv.lock is out of sync with pyproject.toml
- - To regenerate lock file with latest compatible versions
-
-This command does NOT install packages - it only updates the lock file.
-Use 'make sync-install' or 'make sync-install-dev' to install after syncing.
-@
-
-### sync-install
-@SYNCS AND INSTALLS ALL DEPENDENCIES
-Syncs the lock file and installs ALL dependencies (base + all extras including dev and windows).
-
-Usage: make sync-install
-
-This command:
- 1. Updates uv.lock from pyproject.toml
- 2. Installs all dependencies from all groups (base, dev, windows, etc.)
-
-Use this when:
- - Setting up a complete development environment
- - After pulling changes that modified dependencies
- - When you want all optional dependencies installed
-@
-
-### sync-install-dev
-@SYNCS AND INSTALLS DEV DEPENDENCIES
-Syncs the lock file and installs base + dev dependencies only.
-
-Usage: make sync-install-dev
-
-This command:
- 1. Updates uv.lock from pyproject.toml
- 2. Installs base dependencies + dev dependencies (pytest, mypy, ruff, etc.)
-
-Use this when:
- - Setting up a development environment
- - You only need dev tools, not platform-specific extras
- - After the initial 'make create-venv' to update dependencies
 @
 
 ### mypy-no-clear
@@ -1309,7 +1233,7 @@ Opening .py Files as Notebooks:
 
 Troubleshooting:
 If you encounter errors, ensure dependencies are up to date:
- - make sync-install (updates all packages)
+ - make sync (installs dependencies exactly as pinned in uv.lock)
 
 See docs/meta/JUPYTER_ECOSYSTEM.md for complete details on the Notebook 7 migration.
 @
@@ -1376,17 +1300,19 @@ If the file already exists, an error will be shown.
 
 ### marimo-convert
 @CONVERTS JUPYTER NOTEBOOK TO MARIMO FORMAT
-Converts an existing Jupyter notebook (.ipynb) to Marimo format (.py).
-The converted notebook is printed to stdout.
+Converts an existing Jupyter notebook (.ipynb) to Marimo format (.py), writing the
+result next to the source notebook via 'marimo convert IN -o OUT'.
 
 Usage: make marimo-convert notebook=<path/to/notebook.ipynb>
 
 Examples:
  - make marimo-convert notebook=notebooks/raw/my_notebook.ipynb
+   -> writes notebooks/raw/my_notebook.py
  - make marimo-convert notebook=notebooks/documentation/analysis.ipynb
+   -> writes notebooks/documentation/analysis.py
 
-To save the converted notebook:
- - Redirect output: make marimo-convert notebook=notebooks/raw/my_notebook.ipynb > marimo/raw/my_notebook.py
+To use the converted notebook under marimo/, move it into the appropriate subfolder:
+ - move notebooks/raw/my_notebook.py marimo/raw/my_notebook.py
 
 Note: Some Jupyter features may not convert perfectly. Review the converted notebook.
 @
@@ -1435,11 +1361,13 @@ logger.end_timer()
 ## Application Config
 [ToC](#table-of-content)
 
-Singleton-based configuration management using HOCON format. Located in `src/utils/application_config.py`.
+Singleton-based configuration management using a tracked TOML base plus optional partial overlays — see
+[Configuration](#configuration) and [ADR 0006](docs/adr/0006-config-tracked-base-and-overlays.md). Located in
+`src/utils/application_config.py`.
 
 **Configuration Structure:**
-- `name` - Project name
-- `path.data` - Main data folder path
+- `name` - Selected profile name (set from `ENV_CONFIG`, not read from the file)
+- `path.data` - Main data folder path (resolved to an absolute path against the project root)
 
 **Usage:**
 ```python
@@ -1449,13 +1377,15 @@ config = ApplicationConfig()
 data = config.get_data()
 
 # Access configuration values
-print(data.name)           # "python_repo"
-print(data.path.data)      # "../../data"
+print(data.name)           # "python_repo" (or whichever profile ENV_CONFIG selected)
+print(data.path.data)      # e.g. "D:\\...\\python-template\\data" - resolved absolute, from the
+                            # repo-relative "data" value in configurations/python_repo.toml
 ```
 
-**Configuration File:** `configurations/python_repo.conf` (HOCON format)
+**Configuration File:** `configurations/python_repo.toml` (tracked base) deep-merged with the selected overlay,
+if any — TOML, parsed by the stdlib `tomllib`.
 
-**Environment Variable:** Set via `ENV_CONFIG` (default: `python_personal`).
+**Environment Variable:** Set via `ENV_CONFIG` (default: `python_repo`).
 
 <a name="timer"></a>
 ## Timer
@@ -1942,22 +1872,48 @@ Marimo addresses several pain points commonly experienced with traditional Jupyt
 The `marimo/` folder mirrors the `notebooks/` structure for consistency:
 
 **marimo/template/** - Template notebooks:
-- Starting point for new Marimo notebooks
-- Pre-configured with common imports and settings
+- `template_notebook.py` - Integration reference: bootstraps `src` onto `sys.path` and wires up the repo's
+  `Envs`/`Logger`/`ApplicationConfig` singletons, then demonstrates marimo's reactive execution model with a
+  UI slider. This is the file `make create-venv` copies to `marimo/raw/playground_marimo.py`.
 
 **marimo/documentation/** - Documentation notebooks:
-- Feature demonstrations and module documentation
-- Interactive examples of repository functionality
+- `documentation_notebook.py` - Explains, in markdown cells, how marimo's reactive dataflow-graph execution
+  model works, and how `template_notebook.py`'s `sys.path` bootstrap differs from the Jupyter templates' — see
+  [The `src`-Import Bootstrap Pattern](#the-src-import-bootstrap-pattern) below.
 
 **marimo/raw/** - Work in progress:
 - Data exploration and prototyping
 - Experimental analysis
 - Short-lived notebooks
+- `playground_marimo.py` - your personal scratch notebook, generated by `make create-venv` (git-ignored)
 
 **marimo/final/** - Production-ready notebooks:
 - Finalized analysis and reports
 - Deliverables for stakeholders
 - Can be deployed as web applications
+
+<a name="the-src-import-bootstrap-pattern"></a>
+### The `src`-Import Bootstrap Pattern
+
+This repository's package root is `src/`, imported absolutely everywhere
+(`from src.utils.application_config import ApplicationConfig`). For that import to resolve, the repository root
+must be on `sys.path` — but a marimo notebook can be launched with three different current working directories
+(`make marimo`, which `cd`s into `marimo/` first; the marimo UI launched directly; or `uv run marimo edit` from
+the repo root).
+
+`marimo/template/template_notebook.py`'s bootstrap cell solves this by walking up from its own `__file__`
+location — **never** from `Path.cwd()` — until it finds a directory containing a marker file (`pyproject.toml`
+or `.git`), then inserts that directory onto `sys.path`. This mirrors the marker-walk that
+`src/utils/project_paths.py` uses internally (hand-rolled in the notebook cell, since `src` is not yet
+importable when the bootstrap cell runs).
+
+Contrast this with the Jupyter templates under `notebooks/template/`, which instead append
+`os.getcwd()`-relative `".."` / `"../.."` entries to `sys.path` — that only works if Jupyter happens to be
+started from a predictable directory, and silently breaks if the launch directory changes. The marimo
+bootstrap is correct by construction rather than by convention. See
+`marimo/documentation/documentation_notebook.py` for the full explanation, including how the marimo workflow
+(a notebook **is** its `.py` file, no Jupytext pairing needed) differs from the jupytext-paired Jupyter
+workflow under `notebooks/`.
 
 <a name="getting-started-with-marimo"></a>
 ## Getting Started with Marimo
@@ -1975,11 +1931,16 @@ make marimo-new notebook=raw/my_analysis.py
 # Run a notebook as an interactive app
 make marimo-app notebook=raw/my_analysis.py
 
-# Convert a Jupyter notebook to Marimo format
-make marimo-convert notebook=notebooks/raw/existing.ipynb > marimo/raw/converted.py
+# Convert a Jupyter notebook to Marimo format - writes the .py file next to the
+# source .ipynb (here: notebooks/raw/existing.py), then move it under marimo/ yourself
+make marimo-convert notebook=notebooks/raw/existing.ipynb
+move notebooks\raw\existing.py marimo\raw\existing.py
 ```
 
 **Basic Notebook Structure:**
+
+See `marimo/template/template_notebook.py` for a complete, runnable example (the `sys.path` bootstrap, the
+`Envs`/`Logger`/`ApplicationConfig` singletons, and a reactive UI slider). A minimal notebook looks like:
 
 ```python
 import marimo
@@ -1987,25 +1948,25 @@ import marimo
 app = marimo.App()
 
 @app.cell
-def __():
+def _():
     import marimo as mo
     import pandas as pd
     import plotly.express as px
     return mo, pd, px
 
 @app.cell
-def __(mo):
+def _(mo):
     # UI elements are reactive - changes automatically trigger dependent cells
     slider = mo.ui.slider(start=1, stop=100, value=50, label="Sample Size")
     slider
-    return slider,
+    return (slider,)
 
 @app.cell
-def __(pd, slider):
+def _(pd, slider):
     # This cell automatically re-runs when slider value changes
     df = pd.DataFrame({"x": range(slider.value), "y": range(slider.value)})
     df
-    return df,
+    return (df,)
 
 if __name__ == "__main__":
     app.run()
@@ -2014,8 +1975,10 @@ if __name__ == "__main__":
 **Key Concepts:**
 
 1. **Cells are functions:** Each cell is decorated with `@app.cell` and returns variables it defines
-2. **Automatic dependency tracking:** Marimo analyzes which variables each cell uses and produces
-3. **Reactive execution:** When a cell's inputs change, it and all dependent cells re-run
+2. **Automatic dependency tracking:** Marimo statically analyzes which variables each cell uses and produces —
+   there is no need to name cell functions distinctly (`_` is idiomatic when the function name itself is unused)
+3. **Reactive execution:** When a cell's inputs change, it and all dependent cells re-run, in
+   topologically-sorted order — file order is presentation order, not execution order
 4. **No hidden state:** You cannot reference a variable before the cell that defines it
 
 **Running as an App:**

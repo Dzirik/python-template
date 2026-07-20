@@ -10,20 +10,9 @@ from numpy.random import default_rng
 _rng = default_rng()
 
 
-def add_zeros_in_front_and_convert_to_string(number: int, order: int) -> str:
-    """
-    Adds zeros in front of the number, and return without the first digit.
-    Usage: number=5, order=100 -> "05"
-    :param number: int.
-    :param order: int.
-    :return: str.
-    """
-    return str(number + order)[1:]
-
-
 def convert_datetime_to_string_date(now: datetime | None = None, add_micro: bool = False, sep: str = "-") -> str:
     """
-    Converts now to string format yyyy-dd-yy-hh-mm-ss<-micro>.
+    Converts now to string format yyyy-mm-dd-hh-mm-ss<-micro>.
     :param now: datetime. Date in datetime format. Default value is datetime.now().
     :param add_micro: bool. If to add microseconds too.
     :param sep: str. Separator in between time data. Default is "-".
@@ -31,17 +20,11 @@ def convert_datetime_to_string_date(now: datetime | None = None, add_micro: bool
     """
     if now is None:
         now = datetime.now()
-    year = now.year
-    month = add_zeros_in_front_and_convert_to_string(now.month, 100)
-    day = add_zeros_in_front_and_convert_to_string(now.day, 100)
-    hour = add_zeros_in_front_and_convert_to_string(now.hour, 100)
-    minute = add_zeros_in_front_and_convert_to_string(now.minute, 100)
-    second = add_zeros_in_front_and_convert_to_string(now.second, 100)
-    micro = add_zeros_in_front_and_convert_to_string(now.microsecond, 1000000)
+    now_str = (
+        f"{now.year}{sep}{now.month:02d}{sep}{now.day:02d}{sep}{now.hour:02d}{sep}{now.minute:02d}{sep}{now.second:02d}"
+    )
     if add_micro:
-        now_str = f"{year}{sep}{month}{sep}{day}{sep}{hour}{sep}{minute}{sep}{second}{sep}{micro}"
-    else:
-        now_str = f"{year}{sep}{month}{sep}{day}{sep}{hour}{sep}{minute}{sep}{second}"
+        now_str = f"{now_str}{sep}{now.microsecond:06d}"
     return now_str
 
 
@@ -54,10 +37,7 @@ def create_datetime_id(now: datetime | None = None, add_micro: bool = False) -> 
     """
     if now is None:
         now = datetime.now()
-    return (
-        f"{convert_datetime_to_string_date(now, add_micro)}_"
-        f"{add_zeros_in_front_and_convert_to_string(int(_rng.integers(0, 999)), 1000)}"
-    )
+    return f"{convert_datetime_to_string_date(now, add_micro)}_{int(_rng.integers(0, 999)):03d}"
 
 
 def create_date_id(now: datetime | None = None) -> str:
@@ -68,19 +48,23 @@ def create_date_id(now: datetime | None = None) -> str:
     """
     if now is None:
         now = datetime.now()
-    return (
-        f"{convert_datetime_to_string_date(now, False)[0:10]}_"
-        f"{add_zeros_in_front_and_convert_to_string(int(_rng.integers(0, 999)), 1000)}"
-    )
+    return f"{now.year}-{now.month:02d}-{now.day:02d}_{int(_rng.integers(0, 999)):03d}"
 
 
-def convert_string_date_to_datetime(now_str: str) -> datetime:
+def convert_string_date_to_datetime(now_str: str, sep: str = "-", add_micro: bool = False) -> datetime:
     """
-    Converts string of the format yyyy-dd-yy-hh-mm-ss to datetime format.
-    :param now_str: str. String of the format yyyy-dd-yy-hh-mm-ss.
+    Converts string of the format yyyy-mm-dd-hh-mm-ss<-micro> to datetime format.
+    :param now_str: str. String of the format yyyy-mm-dd-hh-mm-ss<-micro>, produced with the same
+     sep and add_micro used here.
+    :param sep: str. Separator in between time data, matching the one used to build now_str. Default is "-".
+    :param add_micro: bool. If now_str carries a trailing microseconds field to parse.
+    :return: datetime.
     """
-    numbers = [int(string_number) for string_number in now_str.split("-")]
-    return datetime(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5])
+    fmt_fields = ["%Y", "%m", "%d", "%H", "%M", "%S"]
+    if add_micro:
+        fmt_fields.append("%f")
+    fmt = sep.join(fmt_fields)
+    return datetime.strptime(now_str, fmt)
 
 
 if __name__ == "__main__":
@@ -89,3 +73,4 @@ if __name__ == "__main__":
     print(convert_datetime_to_string_date(d, True))
     print(create_datetime_id(d))
     print(create_date_id(d))
+    print(convert_string_date_to_datetime(convert_datetime_to_string_date(d, False)))

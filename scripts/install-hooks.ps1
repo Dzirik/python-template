@@ -1,12 +1,12 @@
 # Install Git hooks for the repository (Windows PowerShell version)
+# Points core.hooksPath at the tracked scripts/hooks directory instead of copying files into
+# .git/hooks, so edits to the tracked hooks take effect immediately with no re-install step.
 
 $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
-$HooksDir = Join-Path $RepoRoot ".git\hooks"
-$PreCommitHook = Join-Path $HooksDir "pre-commit"
-$PrePushHook = Join-Path $HooksDir "pre-push"
+$HooksPath = "scripts/hooks"
 
 Write-Host "Installing Git hooks..." -ForegroundColor Cyan
 
@@ -16,18 +16,7 @@ if (-not (Test-Path (Join-Path $RepoRoot ".git"))) {
     exit 1
 }
 
-# Create hooks directory if it doesn't exist
-if (-not (Test-Path $HooksDir)) {
-    New-Item -ItemType Directory -Path $HooksDir | Out-Null
-}
-
-# Copy pre-commit hook
-Write-Host "Installing pre-commit hook (blocks commits to main/develop)..." -ForegroundColor Cyan
-Copy-Item (Join-Path $ScriptDir "pre-commit") $PreCommitHook -Force
-
-# Copy pre-push hook
-Write-Host "Installing pre-push hook (security checks on changed files)..." -ForegroundColor Cyan
-Copy-Item (Join-Path $ScriptDir "pre-push") $PrePushHook -Force
+git config core.hooksPath $HooksPath
 
 Write-Host ""
 Write-Host "Git hooks installed successfully!" -ForegroundColor Green
@@ -40,4 +29,3 @@ Write-Host "To bypass hooks (not recommended):"
 Write-Host "  - Skip pre-commit: git commit --no-verify"
 Write-Host "  - Skip pre-push: git push --no-verify"
 Write-Host ""
-

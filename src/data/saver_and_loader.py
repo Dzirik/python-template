@@ -14,7 +14,7 @@ from typing import Any
 import typedload
 from pandas import DataFrame, read_csv, read_pickle
 
-from src.exceptions.data_exception import FileNotFound
+from src.exceptions.data_exception import FileNotFound, IncorrectDataStructure
 from src.utils.application_config import ApplicationConfig
 
 
@@ -88,11 +88,15 @@ class SaverAndLoader:
         path_obj = Path(path)
         if path_obj.exists():
             # zero len doesn't work with csv files in some cases when small
-            if path_obj.stat().st_size > min_size:
+            actual_size = path_obj.stat().st_size
+            if actual_size > min_size:
                 return read_csv(path, decimal=self._decimal, sep=self._sep)
-        else:
-            raise FileNotFound(description=f"File {path} was not found on selected path.")
-        return DataFrame()
+            error_msg = (
+                f"File {path} is undersized: {actual_size} bytes found, more than {min_size} bytes required. "
+                "The file may be truncated or corrupt."
+            )
+            raise IncorrectDataStructure(description=error_msg)
+        raise FileNotFound(description=f"File {path} was not found on selected path.")
 
     @staticmethod
     def save_dataframe_to_pickle(df: DataFrame, file_name: str, where: str = "raw_data") -> None:
@@ -119,11 +123,15 @@ class SaverAndLoader:
         path = get_path(file_name, where)
         path_obj = Path(path)
         if path_obj.exists():
-            if path_obj.stat().st_size > min_size:
+            actual_size = path_obj.stat().st_size
+            if actual_size > min_size:
                 return read_pickle(path)  # noqa: S301  # nosec B301
-        else:
-            raise FileNotFound(description=f"File {path} was not found on selected path.")
-        return DataFrame()
+            error_msg = (
+                f"File {path} is undersized: {actual_size} bytes found, more than {min_size} bytes required. "
+                "The file may be truncated or corrupt."
+            )
+            raise IncorrectDataStructure(description=error_msg)
+        raise FileNotFound(description=f"File {path} was not found on selected path.")
 
     @staticmethod
     def save_to_pickle(data: Any, file_name: str, where: str = "raw_data") -> None:
@@ -152,12 +160,16 @@ class SaverAndLoader:
         path = get_path(file_name, where)
         path_obj = Path(path)
         if path_obj.exists():
-            if path_obj.stat().st_size > min_size:
+            actual_size = path_obj.stat().st_size
+            if actual_size > min_size:
                 with path_obj.open("rb") as handle:
                     return pickle.load(handle)  # noqa: S301  # nosec B301
-        else:
-            raise FileNotFound(description=f"File {path} was not found on selected path.")
-        return None
+            error_msg = (
+                f"File {path} is undersized: {actual_size} bytes found, more than {min_size} bytes required. "
+                "The file may be truncated or corrupt."
+            )
+            raise IncorrectDataStructure(description=error_msg)
+        raise FileNotFound(description=f"File {path} was not found on selected path.")
 
     @staticmethod
     def delete_pickle(file_name: str, where: str = "raw_data") -> None:

@@ -5,7 +5,10 @@ This guide explains how to configure Windows Task Scheduler to run `checker.py` 
 restarts it automatically if it crashes or freezes.
 
 > **Related guide:** For setting up the long-running `watchdog.py` daemon in Task
-> Scheduler, see [`docs/tutorials/PERSISTENT_RUN.md`](PERSISTENT_RUN.md).
+> Scheduler, see [`docs/tutorials/PERSISTENT_RUN.md`](PERSISTENT_RUN.md). For the design
+> decisions behind the graceful-stop signal contract, crash-loop backoff, and the atomic
+> single-instance lock, see
+> [ADR 0007](../adr/0007-watchdog-supervision-semantics.md).
 
 ---
 
@@ -28,11 +31,11 @@ The full supervision hierarchy is:
 
 ```
 Windows Task Scheduler  (every 60 s, via XML-configured trigger)
-  └── checker.py --config-name <config_name>        ← ephemeral outer sentinel
-        └── watchdog.py --config-name <config_name> ← long-running daemon
-              ├── worker_script_01.py (worker-01)    ← worker process
-              ├── worker_script_01.py (worker-02)    ← worker process
-              └── worker_script_02.py (worker-03)    ← worker process
+  └── checker.py --config-name <config_name>              ← ephemeral outer sentinel
+        └── watchdog.py --config-name <config_name>       ← long-running daemon
+              ├── run_cmd_status_print_01.py (worker-01)   ← worker process
+              ├── run_cmd_status_print_01.py (worker-02)   ← worker process
+              └── run_cmd_status_print_02.py (worker-03)   ← worker process
 ```
 
 ### Why checker.py is ephemeral
@@ -69,11 +72,9 @@ Before starting, confirm the following:
 - **You know the full project path.** You will need to type it during setup. To find it,
   open File Explorer, navigate to the project folder, and click the address bar — it will
   display the complete path (e.g. `D:\TEMP\pt`).
-- **A valid TOML configuration file exists** in the `configurations/` directory at the
+- **A valid TOML configuration file exists** under `configurations/watchdogs/` at the
   project root (e.g. `configurations/watchdogs/watchdog_cmd_02.toml`). The `--config-name` argument
-  passed to `checker.py` must match the filename without the `.toml` extension. See
-  [`docs/tutorials/CONF_TO_TOML.md`](CONF_TO_TOML.md) if you are migrating an older
-  `.conf`/HOCON profile.
+  passed to `checker.py` must match the filename without the `.toml` extension.
 - **Administrator access.** Task Scheduler requires elevated permissions to create tasks.
 
 ---
@@ -137,9 +138,9 @@ A dialog with several tabs will open. Work through each tab below.
 
    > ⚠️ **Do not select "Run whether user is logged in or not".** That option places the
    > process in Windows Session 0 — an isolated background session invisible to the
-   > desktop. Toast notifications delivered by `winotify` require a desktop session and
-   > will be silently suppressed in Session 0. Always use "Run only when user is logged
-   > on" for every task in this supervision chain.
+   > desktop, which makes diagnosing the watchdog and its workers (e.g. confirming
+   > `python.exe` processes in Task Manager) much harder. Always use "Run only when user
+   > is logged on" for every task in this supervision chain.
 
 8. Tick **Run with highest privileges**.
 
@@ -265,21 +266,30 @@ initial save.
 
 ### 5.1 How checker.py evaluates watchdog health
 
-On each invocation, `checker.py` performs two checks:
+On each invocation, `checker.py` requires **all three** of the following for the watchdog
+to be considered healthy:
 
-1. **Process identity** — reads the PID from `heartbeats_<config_name>/watchdog.pid` and
-   verifies via `os.kill(pid, 0)` that a process with that PID is running. It then
-   queries `wmic process where ProcessId=<pid> get CommandLine` to confirm that the
-   process is actually `watchdog.py` running with the expected `--config-name`. This
-   two-layer check guards against PID recycling on Windows, where a crashed watchdog's
-   PID may be reassigned to an unrelated process that would otherwise appear healthy.
-   If the WMIC query fails transiently (e.g. the WMI service is temporarily unavailable),
-   the checker falls back to the basic alive check and logs a warning rather than
-   triggering a false recovery.
+1. **PID file present and valid** — `watchdog.pid` exists under
+   `heartbeats_<config_name>/` and parses to a PID.
 
-2. **Heartbeat freshness** — checks the modification time of
+2. **Process liveness** — that PID belongs to a running process, checked via
+   `tasklist /FI "PID eq {pid}" /NH` rather than `os.kill(pid, 0)` (which on Windows can
+   raise a misleading `OSError`/`PermissionError` for processes spawned across session
+   boundaries, e.g. by `WmiPrvSE.exe`). This check is **fail-safe**: any exception while
+   querying is treated as "alive", so a transient `tasklist` failure never triggers an
+   unnecessary kill of a healthy watchdog tree.
+
+3. **Heartbeat freshness** — the modification time of
    `heartbeats_<config_name>/watchdog.hb`. If the file is older than `HEARTBEAT_THRESHOLD`
    (90 s), the watchdog is considered frozen and recovery is initiated.
+
+As a secondary guard against PID recycling (a crashed watchdog's PID being reassigned to
+an unrelated process that would otherwise appear healthy), `checker.py` also queries the
+process's command line via PowerShell's `Get-CimInstance Win32_Process` (**not** the
+deprecated `wmic` CLI) and confirms it contains both `watchdog.py` and the expected
+`--config-name`. If that CIM query fails or is unavailable, the checker falls back to
+accepting the PID-liveness-plus-fresh-heartbeat result rather than triggering a false
+recovery.
 
 ### 5.2 Timing interaction
 
@@ -308,8 +318,13 @@ When `checker.py` determines the watchdog is unhealthy, it performs a 4-step seq
    — catching workers that survived the tree kill.
 3. **Wait 2 seconds.** Allows the Windows kernel to fully reclaim the terminated processes
    and release file handles on the `.pid` and `.hb` files before the new watchdog starts.
-4. **Restart the watchdog.** Launches a new `watchdog.py` process via `subprocess.Popen`
-   with the same `--config-name`, then exits.
+4. **Restart the watchdog.** Spawns a new `watchdog.py` process via a PowerShell
+   `Invoke-CimMethod -ClassName Win32_Process -MethodName Create` call (**not**
+   `subprocess.Popen`) with the same `--config-name`, then exits. This is deliberate:
+   Task Scheduler wraps `checker.py` in a Windows Job Object, and a child started with
+   `subprocess.Popen` would inherit that Job Object and be killed along with it when
+   `checker.py` exits. Asking `WmiPrvSE.exe` to create the process keeps the new watchdog
+   fully independent of that Job Object.
 
 ---
 
@@ -434,7 +449,10 @@ the action, and correct the **Program / script** field as shown in
 | `HEARTBEAT_THRESHOLD` | 90 s | `checker.py` | Max allowed age of `watchdog.hb` before recovery is triggered; remains adequate at a 60 s check interval (see timing diagram) |
 | `CHECK_INTERVAL` | 30 s | `watchdog.py` | How often the watchdog polls workers and updates `watchdog.hb` |
 | `STARTUP_GRACE_PERIOD` | 5 s | `watchdog.py` | Delay after spawning workers before the first monitoring poll |
-| `WATCHDOG_HEALTHCHECK_INTERVAL` | 60 s | `watchdog.py` | How often the watchdog pings Healthchecks.io |
+| `STOP_GRACE_PERIOD` | 5 s | `watchdog.py` | Grace window after the graceful-stop signal before falling back to `process.kill()` |
+| `WATCHDOG_HEALTHCHECK_INTERVAL` | 30 s | `watchdog.py` | How often the watchdog pings Healthchecks.io |
+| `BACKOFF_BASE` / `BACKOFF_CAP` | 2 s / 300 s | `watchdog.py` | Crash-loop restart backoff: `min(BACKOFF_BASE * 2**consecutive_failures, BACKOFF_CAP)` |
+| `CRASH_LOOP_COUNT` / `CRASH_LOOP_WINDOW` | 5 / 300 s | `watchdog.py` | Restarts within the window that trigger a `CRITICAL` crash-loop log (the watchdog keeps retrying, never gives up) |
 | Worker `timeout` | 90–360 s | `.toml` files | Per-worker heartbeat freshness threshold |
 | Worker `--delay` | 1–5 min | `.toml` files | Sleep duration between worker action cycles |
 

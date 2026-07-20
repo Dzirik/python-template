@@ -1,5 +1,5 @@
 """
-Visualizer
+Line chart visualisation module.
 """
 
 from typing import Any
@@ -20,8 +20,6 @@ class PlotlyLineChart(PlotlyBase):
         PlotlyBase.__init__(self)
         self._opacity = 0.9
 
-    # pylint: disable=too-many-arguments
-    # pylint: disable=arguments-differ
     def plot(
         self,
         lines: list[tuple[ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]]]],
@@ -38,10 +36,10 @@ class PlotlyLineChart(PlotlyBase):
         :param plot_title: str. Title of the plot.
         :param x_title: str. X axis caption.
         :param y_title: Optional[str]. Y axis caption.
-        :param dashboard: bool. If False, the method will create a plot. If True, it will return the figure dictionary
-            for dash.
-        :return: Optional[go.Figure]. If None, then plots the figure. Otherwise, it creates go.Figure to be plotted with
-        Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         if line_names is None:
             line_names = self._create_captions(len(lines), "Line")
@@ -61,14 +59,6 @@ class PlotlyLineChart(PlotlyBase):
             "yaxis_title": y_title,
             "xaxis_title": x_title,
             "title": plot_title,
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
         }
         return self._plot_single_figure(trace=traces, layout=layout, dashboard=dashboard)
-
-    # pylint: enable=arguments-differ
-    # pylint: enable=too-many-arguments

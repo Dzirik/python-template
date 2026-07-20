@@ -2,7 +2,9 @@
 Tests for Python version consistency across the version-bearing project files.
 """
 
+import os
 import re
+import sys
 import tomllib
 from typing import Any
 
@@ -118,3 +120,15 @@ def test_ci_matrix_python_version_is_exactly_3_13_and_3_14() -> None:
     versions = [item.strip().strip('"').strip("'") for item in match.group("versions").split(",")]
 
     assert versions == EXPECTED_CI_MATRIX_PYTHON_VERSIONS
+
+
+@pytest.mark.skipif("EXPECTED_PYTHON" not in os.environ, reason="asserts the running interpreter only in CI")
+def test_running_interpreter_matches_ci_matrix() -> None:
+    """
+    Tests that the running interpreter matches the CI matrix leg it is running under, guarding against uv
+    silently resolving a different interpreter than the one the matrix job requested.
+    """
+    expected = os.environ["EXPECTED_PYTHON"]
+    actual = f"{sys.version_info.major}.{sys.version_info.minor}"
+
+    assert actual == expected

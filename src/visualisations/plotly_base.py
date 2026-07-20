@@ -1,5 +1,5 @@
 """
-Visualizer
+Base class for plotly visualisations, providing shared figure assembly, background layout, and sizing helpers.
 """
 
 from abc import ABC, abstractmethod
@@ -9,6 +9,7 @@ import plotly.graph_objs as go
 import plotly.io as pio
 
 from src.visualisations.colors import COLORS
+from src.visualisations.visualisation_functions import hex_to_rgb
 
 try:
     get_ipython()  # type: ignore[name-defined]
@@ -64,6 +65,16 @@ class PlotlyBase(ABC):
         shapes: list[Any] | None = None,
         dashboard: bool = False,
     ) -> go.Figure | None:
+        """
+        Assembles the figure and either returns it (for Dash) or shows it and returns None (standalone).
+        :param trace: Union[List[Dict[str, Any]], Dict[str, Any]]. Plotly trace(s) for the figure.
+        :param layout: Dict[str, Any]. Plotly layout for the figure.
+        :param shapes: Optional[List[Any]]. Shapes (e.g. vertical lines) to add to the figure.
+        :param dashboard: bool. If True, returns the go.Figure for embedding in a Dash dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
+        """
         fig = go.Figure(data=trace, layout=layout)
 
         if self._figure_size["autosize"]:
@@ -78,9 +89,31 @@ class PlotlyBase(ABC):
         if dashboard:
             return fig
 
-        return fig
+        fig.show()
+        return None
+
+    def _create_background_layout(self) -> dict[str, Any]:
+        """
+        Creates the paper/plot background color layout entries shared by all plotly visualisations.
+        :return: Dict[str, Any]. Dictionary with "paper_bgcolor" and "plot_bgcolor" keys, ready to be merged into a
+            plotly layout dict.
+        """
+        return {
+            "paper_bgcolor": hex_to_rgb(
+                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
+            ),
+            "plot_bgcolor": hex_to_rgb(
+                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
+            ),
+        }
 
     def _create_vertical_lines(self, vertical_lines_positions: list[float] | None) -> list[Any] | None:
+        """
+        Creates vertical line shapes at the given x-axis positions, for overlaying markers on a plot.
+        :param vertical_lines_positions: List[float] | None. X-axis coordinates to draw a vertical line at each.
+            If None, no shapes are created.
+        :return: Optional[List[Any]]. List of go.layout.Shape lines, or None if vertical_lines_positions is None.
+        """
         if vertical_lines_positions is None:
             return None
 
@@ -135,6 +168,6 @@ class PlotlyBase(ABC):
         Plots the figure.
         :param args: Positional arguments for the plot (subclass-specific).
         :param kwargs: Keyword arguments for the plot (subclass-specific).
-        :return: Optional[go.Figure]. Either it plots by using self._plot_single_figure (and thus it returns None) or
-        returns the created go.Figure to be plotted with Dash's dcc.Graph() component.
+        :return: Optional[go.Figure]. If dashboard is True, returns the go.Figure to be plotted with Dash's
+        dcc.Graph() component. If dashboard is False, shows the figure and returns None.
         """

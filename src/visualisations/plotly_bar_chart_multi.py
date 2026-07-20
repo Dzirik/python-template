@@ -23,9 +23,6 @@ class PlotlyBarChartMulti(PlotlyBase):
     def __init__(self) -> None:
         PlotlyBase.__init__(self)
 
-    # pylint: disable=too-many-arguments
-    # pylint: disable=arguments-differ
-    # pylint: disable=too-many-locals
     def plot(
         self,
         array_ids: ndarray[Any, dtype[Any]],
@@ -54,9 +51,10 @@ class PlotlyBarChartMulti(PlotlyBase):
         :param order_by_series: int. Series index to use for sorting when order_by_values=True.
                                Defaults to 0 (first series).
         :param bar_mode: str. Display mode for bars: "group" (side-by-side) or "stack" (stacked). Defaults to "group".
-        :param dashboard: bool. Whether to use in a dash application.
-        :return: Optional[go.Figure]. Returns None and displays the figure, or returns go.Figure
-                for use with Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         if len(array_values_list) != len(series_names):
             raise ValueError("array_values_list and series_names must have the same length")
@@ -95,17 +93,8 @@ class PlotlyBarChartMulti(PlotlyBase):
             "xaxis": {"type": "category", "categoryorder": "array", "categoryarray": category_array},
             "title": plot_title,
             "barmode": bar_mode,
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
             "legend": {"orientation": "v", "yanchor": "top", "y": 1, "xanchor": "left", "x": 1.02},
         }
 
         return self._plot_single_figure(trace=traces, layout=layout, dashboard=dashboard)
-
-    # pylint: enable=arguments-differ
-    # pylint: enable=too-many-arguments
-    # pylint: enable=too-many-locals

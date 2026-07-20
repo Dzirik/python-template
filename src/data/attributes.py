@@ -11,7 +11,7 @@ from pandas import read_excel
 
 from src.exceptions.development_exception import NoProperOptionInIf
 
-FILE_NAME_BASE = "../../src/data/attributes"
+FILE_NAME_BASE = str(Path(__file__).resolve().parent / "attributes")
 ATTRS_GROUPS_NAMES = ["GROUP_01"]
 
 
@@ -79,7 +79,7 @@ class Attributes:
                 dict_attrs_groups_order_name_tuples=dict_attrs_groups_order_name_tuples,
             )
         else:
-            NoProperOptionInIf("Not valid option in Attributes class reading.")
+            raise NoProperOptionInIf("Not valid option in Attributes class reading.")
 
         for key, value in dict_attrs_groups_order_name_tuples.items():
             self._dict_attrs_groups[key] = [item[1] for item in sorted(value, key=lambda x: x[0])]
@@ -118,10 +118,7 @@ class Attributes:
         :param dict_attrs_groups_order_name_tuples: Dict[str, List[Tuple[int, str]]].
         :return: Tuple[Dict[str, Any], Dict[str, List[Tuple[int, str]]]].
         """
-        # this is because of the test
         file_path = Path(file_name)
-        if len(str(Path.cwd()).split("\\")) == 2:
-            file_path = Path.cwd() / "src" / "data" / "attributes.csv"
         with file_path.open(encoding="utf8") as file:
             reader = csv.DictReader(file)
             for row in reader:

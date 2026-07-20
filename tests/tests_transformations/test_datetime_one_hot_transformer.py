@@ -15,7 +15,7 @@ from numpy.random import default_rng
 from pandas import DatetimeIndex
 
 from src.exceptions.development_exception import NoProperOptionInIf
-from src.transformations.datetime_one_hot_transformer import DatetimeOneHotEncoderTransformer
+from src.transformations.datetime_one_hot_transformer import DatetimeOneHotEncoderTransformer, TimeAttributes
 from src.transformations.transformer_methods import FP, P
 from src.utils.envs import Envs
 from src.utils.leap_year import is_leap
@@ -207,14 +207,16 @@ def test_min_intervals(min_interval: int, correct_n_of_intervals: int) -> None:
     :param correct_n_of_intervals: int.
     """
     data, oh_output_correct = _generate_data_for_min_intervals(min_interval)
-    t = DatetimeOneHotEncoderTransformer()
-    oh_output_predicted = t.fit_predict(data, False, False, False, False, False, min_interval)
+    time_attributes = TimeAttributes(
+        hours=False, days_of_week=False, weekend=False, months=False, years=False, min_interval=min_interval
+    )
+    t = DatetimeOneHotEncoderTransformer(time_attributes)
+    oh_output_predicted = t.fit_predict(data)
     assert oh_output_predicted.shape[1] == correct_n_of_intervals and array_equal(
         oh_output_correct, oh_output_predicted
     )
 
 
-# pylint: disable=too-many-arguments
 def _do_one_hot_encoding(
     type_of_method: str,
     fit_data: DatetimeIndex,
@@ -238,13 +240,19 @@ def _do_one_hot_encoding(
     :return: Tuple[ndarray, List[str], List[str]]. One-hot transformation output matrix, column names without and
         with the original attribute name.
     """
-    transformer = DatetimeOneHotEncoderTransformer()
+    time_attributes = TimeAttributes(
+        hours=add_hours,
+        days_of_week=add_days_of_week,
+        weekend=add_weekend,
+        months=add_months,
+        years=add_years,
+        min_interval=0,
+    )
+    transformer = DatetimeOneHotEncoderTransformer(time_attributes)
     if type_of_method == FP:
-        oh_output_predicted = transformer.fit_predict(
-            fit_data, add_hours, add_days_of_week, add_weekend, add_months, add_years
-        )
+        oh_output_predicted = transformer.fit_predict(fit_data)
     elif type_of_method == P:
-        transformer.fit(fit_data, add_hours, add_days_of_week, add_weekend, add_months, add_years)
+        transformer.fit(fit_data)
         oh_output_predicted = transformer.predict(prediction_data)
     else:
         raise NoProperOptionInIf("test_datetime_one_hot_transformer")
@@ -252,9 +260,6 @@ def _do_one_hot_encoding(
     encoded_data_attributes_names_with_attr_name = transformer.get_encoded_attribute_names(DATE_ATTR_NAME)
 
     return oh_output_predicted, encoded_data_attributes_names, encoded_data_attributes_names_with_attr_name
-
-
-# pylint: enable=too-many-arguments
 
 
 def _generate_columns_indices(
@@ -353,7 +358,6 @@ TEST_CONFIGURATIONS = [
 ]
 
 
-# pylint: disable=too-many-arguments
 @pytest.mark.parametrize(
     "type_of_method, data, add_hours, add_days_of_week, add_weekend, add_months, add_years, correct_output",
     TEST_CONFIGURATIONS,
@@ -392,36 +396,67 @@ def test_output(
     )
 
 
-# pylint: enable=too-many-arguments
-
-
 def test_incorrect_input() -> None:
     """
     Tests exception raise situation when there is no option selected.
     """
     env = Envs()
     env.set_running_unit_tests()
-    transformer = DatetimeOneHotEncoderTransformer()
+    time_attributes = TimeAttributes(
+        hours=False, days_of_week=False, weekend=False, months=False, years=False, min_interval=0
+    )
+    transformer = DatetimeOneHotEncoderTransformer(time_attributes)
     with pytest.raises(NoProperOptionInIf):
-        transformer.fit(DATES, False, False, False, False, False)
+        transformer.fit(DATES)
 
 
 def test_handle_unknown() -> None:
     """
     Tests correct output when prediction data is not present in the unseen data.
     """
-    transformer = DatetimeOneHotEncoderTransformer()
+    time_attributes = TimeAttributes(
+        hours=True, days_of_week=True, weekend=True, months=True, years=True, min_interval=0
+    )
+    transformer = DatetimeOneHotEncoderTransformer(time_attributes)
     data = DatetimeIndex([datetime(2019, 1, 1, 1, 0, 0)])
     unseen_data = DatetimeIndex([datetime(2020, 2, 2, 2, 0, 0)])
     correct_output: ndarray[Any, dtype[Any]] = array([[0, 0, 0, 0, 0]])
-    transformer.fit(data, True, True, True, True, True)
+    transformer.fit(data)
     output = transformer.predict(unseen_data)
     assert array_equal(output, correct_output)
 
 
 def test_inverse() -> None:
     """
-    Tests empty (returns None) inverse.
+    Tests the inverse transformation returns the pre-one-hot numerical attribute matrix.
     """
-    transformer = DatetimeOneHotEncoderTransformer()
-    assert transformer.inverse(data=None) is None
+    time_attributes = TimeAttributes(
+        hours=False, days_of_week=True, weekend=False, months=False, years=False, min_interval=0
+    )
+    transformer = DatetimeOneHotEncoderTransformer(time_attributes)
+    data = DatetimeIndex([datetime(2019, 1, 1, 1, 0, 0), datetime(2019, 1, 2, 1, 0, 0)])
+    encoded = transformer.fit_predict(data)
+    inverted = transformer.inverse(encoded)
+    expected = array([[dt.weekday()] for dt in data])
+    assert array_equal(inverted, expected)
+
+
+def test_restore_from_params_predicts_identically_to_original() -> None:
+    """
+    Tests that restoring a fresh encoder from a fitted encoder's params reproduces identical predictions, without
+    re-fitting.
+    """
+    time_attributes = TimeAttributes(
+        hours=True, days_of_week=True, weekend=False, months=True, years=False, min_interval=0
+    )
+    encoder_a = DatetimeOneHotEncoderTransformer(time_attributes)
+    encoder_a.fit(DATES)
+
+    params = encoder_a.get_params()
+
+    encoder_b = DatetimeOneHotEncoderTransformer(time_attributes)
+    encoder_b.restore_from_params(params)
+
+    prediction_a = encoder_a.predict(INPUT_DATA)
+    prediction_b = encoder_b.predict(INPUT_DATA)
+    assert array_equal(prediction_a, prediction_b)

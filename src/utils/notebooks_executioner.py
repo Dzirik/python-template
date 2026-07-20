@@ -1,6 +1,11 @@
 """
 Code for automatically execution of notebooks based on parameters.
 
+Uses a spawn-based multiprocessing context (the default multiprocessing start method on Windows, and the more
+robust choice for Jupyter kernels on Linux/macOS too) together with ``imap_unordered`` for better load balancing
+across notebook parameter sets of varying runtime. HTML conversion is invoked via ``python -m jupyter nbconvert``
+through ``subprocess`` (passing args as a list, avoiding PATH/shell-quoting issues).
+
 NOTE: Joblib could be used instead of multiprocessing.
 """
 
@@ -8,7 +13,7 @@ NOTE: Joblib could be used instead of multiprocessing.
 import subprocess  # nosec B404
 import sys
 from datetime import datetime
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count, get_context
 from pathlib import Path
 from random import shuffle
 from typing import Any, NamedTuple
@@ -49,6 +54,9 @@ class NotebookExecutionerNamedTuple(NamedTuple):
 class NotebookExecutioner:
     """
     Class for execution of the parameterized notebook with different set of parameters for each run.
+
+    Parallel runs use a spawn-based multiprocessing context and ``imap_unordered`` scheduling, one notebook
+    execution per task, for better load balancing than static batching.
     """
 
     def __init__(self, params: NotebookExecutionerNamedTuple) -> None:
@@ -57,7 +65,6 @@ class NotebookExecutioner:
         """
         self._params: NotebookExecutionerNamedTuple
         self._timer = Timer()
-        self._win_or_linux = "Windows"
 
         self.set_executioner_params(params=params)
 
@@ -107,90 +114,114 @@ class NotebookExecutioner:
             try:
                 nb = jupytext.read(py_path)
                 jupytext.write(nb, ipynb_path)
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception as exc:
                 raise RuntimeError(f"Failed to convert '{py_path}' to '{ipynb_path}' via jupytext: {exc}") from exc
         else:
             raise FileNotFoundError(f"Python notebook source not found: '{py_path}'")
 
-    def _run_notebooks_with_params(self, list_of_ntb_params: list[Any]) -> None:
+    @staticmethod
+    def _build_output_path(base: dict[str, Any], exec_params: dict[str, Any], datetime_id: str) -> str:
         """
-        Executes the notebook based on default params or config params.
+        Builds the output .ipynb path based on configuration and parameters.
 
-        Note: The list_of_params is given as a parameter because it can differ based on parallel computations.
-        :param list_of_ntb_params: List[Any].
+        :param base: dict[str, Any]. Picklable subset of the executioner params needed by a worker process.
+        :param exec_params: dict[str, Any]. Parameters for this particular notebook run (including "ID").
+        :param datetime_id: str. Datetime id generated for this run, used when add_datetime_id is set.
+        :return: str. Absolute path of the notebook to write.
         """
-        for exec_params in list_of_ntb_params:
-            datetime_id = create_datetime_id(now=datetime.now(), add_micro=False)
-            exec_params["ID"] = datetime_id
-            if self._params.keep_name_static:
-                path_out = str(
-                    (
-                        Path(self._params.output_folder) / f"{self._params.notebook_name}_{Path(__file__).stem}.ipynb"
-                    ).resolve()
-                )
-            else:
-                name = self._params.notebook_name
-                name = (
-                    (f"{self._params.file_name}" if name == "" else f"{name}_{self._params.file_name}")
-                    if self._params.add_file_name_to_notebook_name
-                    else name
-                )
-                if self._params.add_datetime_id:
-                    name = f"{datetime_id}_{name}"
-                if self._params.add_params_to_name:
-                    for key, value in exec_params.items():
-                        if key != "ID":
-                            name = f"{name}_{value}"
-                path_out = str((Path(self._params.output_folder) / f"{name}.ipynb").resolve())
-            papermill.execute_notebook(self._params.notebook_path, path_out, exec_params)
-            if self._params.convert_to_html:
-                subprocess.run(  # noqa: S603  # nosec B603
-                    [sys.executable, "-m", "jupyter", "nbconvert", "--to", "html", path_out],
-                    check=True,
-                    capture_output=True,
-                )
+        if base["keep_name_static"]:
+            name = f"{base['notebook_name']}_notebook_executioner"
+            return str((Path(base["output_folder"]) / f"{name}.ipynb").resolve())
+
+        name = base["notebook_name"]
+        name = (
+            (f"{base['file_name']}" if name == "" else f"{name}_{base['file_name']}")
+            if base["add_file_name_to_notebook_name"]
+            else name
+        )
+        if base["add_datetime_id"]:
+            name = f"{datetime_id}_{name}"
+        if base["add_params_to_name"]:
+            for key, value in exec_params.items():
+                if key != "ID":
+                    name = f"{name}_{value}"
+        return str((Path(base["output_folder"]) / f"{name}.ipynb").resolve())
+
+    def _worker_execute_one(self, args: tuple[dict[str, Any], dict[str, Any]]) -> str:
+        """
+        Executes a single parameterized notebook run. Top-level-callable, so it is pickle-safe under spawn.
+
+        :param args: tuple[dict[str, Any], dict[str, Any]]. Picklable base params and this run's exec params.
+        :return: str. Path of the executed output notebook.
+        """
+        base, exec_params = args
+
+        datetime_id = create_datetime_id(now=datetime.now(), add_micro=False)
+        exec_params = dict(exec_params)
+        exec_params["ID"] = datetime_id
+
+        path_out = self._build_output_path(base, exec_params, datetime_id)
+
+        papermill.execute_notebook(base["notebook_path"], path_out, exec_params)
+
+        if base["convert_to_html"]:
+            # Call via the current interpreter to avoid PATH issues; pass args as list to avoid quoting problems.
+            subprocess.run(  # noqa: S603  # nosec B603
+                [sys.executable, "-m", "jupyter", "nbconvert", "--to", "html", path_out],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+        return path_out
 
     def execute(self) -> None:
         """
-        Executes the notebook for defined parameters using parallel computing.
+        Executes the notebook for defined parameters using spawn-based parallel computing.
         """
         self._timer = Timer()
 
         self._timer.start()
 
         number_of_processes = self._params.number_of_processes
-        list_of_ntb_params = self._params.list_of_ntb_params
+        list_of_ntb_params = list(self._params.list_of_ntb_params)
 
         self._ensure_ipynb_from_py()
 
         print(f"\n{'#' * 50} EXECUTING FOR {number_of_processes} PROCESSES {'#' * 50}")
-        print(f" - win or linux: {self._win_or_linux}")
         print(f" - len of params: {len(list_of_ntb_params)}")
         print(f" - number of threads is: {cpu_count()}")
         print(f" - running {number_of_processes} processes")
 
+        if number_of_processes < 1:
+            raise IncorrectValue(f"The value of number_of_processes {number_of_processes} has to be integer >= 1.")
+
+        base = {
+            "keep_name_static": self._params.keep_name_static,
+            "add_datetime_id": self._params.add_datetime_id,
+            "add_file_name_to_notebook_name": self._params.add_file_name_to_notebook_name,
+            "file_name": self._params.file_name,
+            "add_params_to_name": self._params.add_params_to_name,
+            "convert_to_html": self._params.convert_to_html,
+            "notebook_name": self._params.notebook_name,
+            "notebook_path": self._params.notebook_path,
+            "output_folder": self._params.output_folder,
+        }
+
         if number_of_processes == 1:
-            self._run_notebooks_with_params(list_of_ntb_params)
-        elif number_of_processes > 1:
+            for exec_params in list_of_ntb_params:
+                self._worker_execute_one((base, exec_params))
+        else:
+            # Multiprocess execution with spawn context.
             if self._params.shuffle_before_processing:
                 shuffle(list_of_ntb_params)
-            if len(list_of_ntb_params) < number_of_processes:
-                number_of_processes = len(list_of_ntb_params)
-                print(
-                    f" - updating number of processes to: {number_of_processes} for length: {len(list_of_ntb_params)}"
-                )
-            batch_size = len(list_of_ntb_params) // number_of_processes
-            params_batches = [
-                list_of_ntb_params[i : i + batch_size] for i in range(0, len(list_of_ntb_params), batch_size)
-            ]
-
-            with Pool(number_of_processes) as notebook_pool:
-                notebook_pool.map(self._run_notebooks_with_params, params_batches)
-                notebook_pool.close()
-                notebook_pool.join()
-        else:
-            raise IncorrectValue(
-                f"The value of number_of_processes {number_of_processes}has to be integer bigger or equal to 1."
-            )
+            ctx = get_context("spawn")
+            with ctx.Pool(number_of_processes) as pool:
+                # Use imap_unordered for better load balancing with varying notebook runtimes.
+                for _ in pool.imap_unordered(
+                    self._worker_execute_one, [(base, p) for p in list_of_ntb_params], chunksize=1
+                ):
+                    pass
+                pool.close()
+                pool.join()
 
         self._timer.end(label=f"End of Notebook Executioner for {len(list_of_ntb_params)} parameters")

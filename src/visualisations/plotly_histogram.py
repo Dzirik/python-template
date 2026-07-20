@@ -1,5 +1,5 @@
 """
-Visualizer
+Histogram visualisation module.
 
 Links:
 https://community.plotly.com/t/drawing-vertical-line-on-histogram-in-subplot-but-yref-paper-is-not-working/31581/2
@@ -26,15 +26,13 @@ class PlotlyHistogram(PlotlyBase):
 
         self.set_histogram()
 
-    # pylint: disable=arguments-differ
-    # pylint: disable=too-many-arguments
     def plot(
         self,
         data: ndarray[Any, dtype[Any]],
         plot_title: str,
         x_title: str,
         n_bins: int = 0,
-        x_axis_min_max: tuple[float] | None = None,
+        x_axis_min_max: tuple[float, float] | None = None,
         vertical_lines_positions: list[float] | None = None,
         dashboard: bool = False,
     ) -> go.Figure | None:
@@ -44,13 +42,14 @@ class PlotlyHistogram(PlotlyBase):
         :param plot_title: str. Title of the plot.
         :param x_title: Description of the x-axis.
         :param n_bins: int. Number of n_bins to create. If 0, automatic n_bins selection is applied.
-        :param x_axis_min_max: Optional[Tuple[float]]. If None, the x-axis limits are set automatically, otherwise based
-               on first (min) and second (max) values of this tuple.
+        :param x_axis_min_max: Optional[Tuple[float, float]]. If None, the x-axis limits are set automatically,
+               otherwise based on first (min) and second (max) values of this tuple.
         :param vertical_lines_positions: List[float]. If not None, a list of x-axis coordinates for plotting a vertical
                line there.
-        :param dashboard: bool. If use in dash application or not.
-        :return: Optional[go.Figure]. If None, then plots the figure. Otherwise, it creates go.Figure to be plotted with
-        Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         start = data.min()
         end = data.max()
@@ -69,18 +68,10 @@ class PlotlyHistogram(PlotlyBase):
             "xaxis_title": x_title,
             "yaxis_title": self._hist_func.capitalize(),
             "title": plot_title,
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
             "xaxis_range": x_axis_min_max,
         }
 
         lines = self._create_vertical_lines(vertical_lines_positions)
 
         return self._plot_single_figure(trace=trace, layout=layout, shapes=lines, dashboard=dashboard)
-
-    # pylint: enable=arguments-differ
-    # pylint: enable=too-many-arguments

@@ -24,6 +24,9 @@ level = "DEBUG"
 formatter = "full_formatter"
 stream = "ext://sys.stdout"
 
+# Root level policy: DEBUG (full verbosity). Neither handler here is size-capped, so nothing is
+# lost keeping every level. See "logger_file_limit.toml"/"logger_file_limit_console.toml" for the
+# deliberate INFO divergence used by byte-capped rotating-file profiles.
 [root]
 level = "DEBUG"
 handlers = ["file_handler", "console_handler"]

@@ -1,5 +1,5 @@
 """
-Visualizer
+Bar chart visualisation module.
 
 Ordering: https://stackoverflow.com/questions/40149556/ordering-in-r-plotly-barchart
 """
@@ -22,8 +22,6 @@ class PlotlyBarChart(PlotlyBase):
     def __init__(self) -> None:
         PlotlyBase.__init__(self)
 
-    # pylint: disable=too-many-arguments
-    # pylint: disable=arguments-differ
     def plot(
         self,
         array_ids: ndarray[Any, dtype[Any]],
@@ -44,9 +42,10 @@ class PlotlyBarChart(PlotlyBase):
         :param name_values: str. Name of the values for captions.
         :param order_by_values: bool. If order by values (True) or by captions (False)
         :param reverse: bool. If reverse the ordering.
-        :param dashboard: bool. If use in dash application or not.
-        :return: Optional[go.Figure]. If None, then plots the figure. Otherwise, it creates go.Figure to be plotted with
-        Dash and its dcc.Graph() component.
+        :param dashboard: bool. If True, returns the go.Figure to be plotted with Dash's dcc.Graph() component. If
+            False, shows the figure and returns None.
+        :return: Optional[go.Figure]. The go.Figure if dashboard is True, otherwise None (the figure is shown as a
+            side effect).
         """
         trace = go.Bar(
             x=array_ids,
@@ -66,15 +65,7 @@ class PlotlyBarChart(PlotlyBase):
             "yaxis_title": name_values,
             "xaxis": {"type": "category", "categoryorder": "array", "categoryarray": category_array},
             "title": plot_title,
-            "paper_bgcolor": hex_to_rgb(
-                self._colors["paper_background"]["color"], self._colors["paper_background"]["opacity"]
-            ),
-            "plot_bgcolor": hex_to_rgb(
-                self._colors["grid_background"]["color"], self._colors["grid_background"]["opacity"]
-            ),
+            **self._create_background_layout(),
         }
 
         return self._plot_single_figure(trace=trace, layout=layout, dashboard=dashboard)
-
-    # pylint: enable=arguments-differ
-    # pylint: enable=too-many-arguments

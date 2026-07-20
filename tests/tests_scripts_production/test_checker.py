@@ -2,7 +2,8 @@
 Tests for the checker.py process validation and health-check logic.
 
 Focuses on the fixes for the infinite restart loop:
-- ``is_process_alive``: PermissionError must be treated as *alive*.
+- ``is_process_alive``: any internal error (PermissionError, timeout, etc.) must be
+  treated as *alive* (fail-safe), never *dead*.
 - ``_get_process_cmdline``: PowerShell CIM query stubbing.
 - ``read_pid``: PID file reading edge cases.
 - ``is_watchdog_healthy``: Integration of all checks.
@@ -15,6 +16,8 @@ from unittest.mock import MagicMock, patch
 
 from src.scripts_production.checker import (
     HEARTBEAT_THRESHOLD,
+    WMI_LOG_MAX_BYTES,
+    _cap_wmi_log,
     _get_process_cmdline,
     is_process_alive,
     is_watchdog_healthy,
@@ -53,21 +56,25 @@ class TestIsProcessAlive:
         with patch("src.scripts_production.checker.subprocess.run", return_value=self._mock_tasklist(output)):
             assert is_process_alive(11764) is True
 
-    def test_timeout_returns_false(self) -> None:
-        """Timeout during tasklist call → assume not alive."""
+    def test_timeout_returns_true_fail_safe(self) -> None:
+        """Timeout during tasklist call → fail-safe assumes alive, not dead."""
         with patch(
             "src.scripts_production.checker.subprocess.run",
             side_effect=TimeoutError("timed out"),
         ):
-            assert is_process_alive(1234) is False
+            assert is_process_alive(1234) is True
 
-    def test_generic_exception_returns_false(self) -> None:
-        """Any unexpected exception → assume not alive."""
+    def test_generic_exception_returns_true_fail_safe(self) -> None:
+        """Any unexpected exception → fail-safe assumes alive, not dead.
+
+        This is the guard that keeps a transient tasklist failure from letting
+        ``recover_watchdog`` ``taskkill /F`` a perfectly healthy watchdog tree.
+        """
         with patch(
             "src.scripts_production.checker.subprocess.run",
             side_effect=RuntimeError("unexpected"),
         ):
-            assert is_process_alive(1234) is False
+            assert is_process_alive(1234) is True
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +153,9 @@ class TestReadPid:
 
     def test_empty_file(self, tmp_path: Path) -> None:
         """Empty file → None."""
+        pid_file = tmp_path / "watchdog.pid"
+        pid_file.write_text("", encoding="utf-8")
+        assert read_pid(pid_file) is None
 
 
 # ---------------------------------------------------------------------------
@@ -274,6 +284,65 @@ class TestIsWatchdogHealthy:
 
         hb_dir = _make_heartbeat_dir(tmp_path, pid=11764, hb_age=5)
         assert is_watchdog_healthy(hb_dir, "test_config") is True
-        pid_file = tmp_path / "watchdog.pid"
-        pid_file.write_text("", encoding="utf-8")
-        assert read_pid(pid_file) is None
+
+
+# ---------------------------------------------------------------------------
+# _cap_wmi_log
+# ---------------------------------------------------------------------------
+class TestCapWmiLog:
+    """Tests for _cap_wmi_log."""
+
+    def test_missing_file_is_a_no_op(self, tmp_path: Path) -> None:
+        """A log path that doesn't exist yet is left alone - nothing to cap."""
+        log_path = tmp_path / "watchdog_test_config_wmi.log"
+
+        _cap_wmi_log(log_path, max_bytes=100)
+
+        assert not log_path.exists()
+
+    def test_under_cap_file_is_untouched(self, tmp_path: Path) -> None:
+        """A log at or under max_bytes is left in place with its content intact."""
+        log_path = tmp_path / "watchdog_test_config_wmi.log"
+        content = "small log content"
+        log_path.write_text(content, encoding="utf-8")
+
+        _cap_wmi_log(log_path, max_bytes=len(content) + 10)
+
+        assert log_path.exists()
+        assert log_path.read_text(encoding="utf-8") == content
+
+    def test_over_cap_file_is_rotated_to_backup(self, tmp_path: Path) -> None:
+        """A log over max_bytes is moved to a .1 backup, leaving the original path free."""
+        log_path = tmp_path / "watchdog_test_config_wmi.log"
+        content = "x" * 200
+        log_path.write_text(content, encoding="utf-8")
+
+        _cap_wmi_log(log_path, max_bytes=100)
+
+        assert not log_path.exists()
+        backup_path = tmp_path / "watchdog_test_config_wmi.log.1"
+        assert backup_path.exists()
+        assert backup_path.read_text(encoding="utf-8") == content
+
+    def test_over_cap_discards_previous_backup(self, tmp_path: Path) -> None:
+        """A stale .1 backup from an earlier rotation is replaced, not appended to."""
+        log_path = tmp_path / "watchdog_test_config_wmi.log"
+        backup_path = tmp_path / "watchdog_test_config_wmi.log.1"
+        backup_path.write_text("stale backup", encoding="utf-8")
+        new_content = "y" * 200
+        log_path.write_text(new_content, encoding="utf-8")
+
+        _cap_wmi_log(log_path, max_bytes=100)
+
+        assert not log_path.exists()
+        assert backup_path.read_text(encoding="utf-8") == new_content
+
+    def test_default_max_bytes_matches_module_constant(self, tmp_path: Path) -> None:
+        """Calling without max_bytes uses WMI_LOG_MAX_BYTES, not some other implicit cap."""
+        log_path = tmp_path / "watchdog_test_config_wmi.log"
+        log_path.write_text("small", encoding="utf-8")
+
+        _cap_wmi_log(log_path)
+
+        assert log_path.exists()
+        assert len("small") < WMI_LOG_MAX_BYTES

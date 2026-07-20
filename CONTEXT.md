@@ -49,6 +49,23 @@ against the current working directory. An environment override (via **Env
 Selector**) can repoint the base directory for deployments outside the repo tree.
 Foundational: it must not depend on the **Logger**.
 
+### Transformer
+A data-transformation object exposing the house `fit` / `predict` / `fit_predict` /
+`inverse` interface, plus `get_params` / `restore_from_params` for persistence.
+Transformers manipulate data; they are **not** machine-learning models, and
+**sklearn compatibility is a deliberate non-goal** — the interface deliberately
+resembles sklearn's without conforming to its estimator contract. All configuration
+is supplied at construction so `fit` takes only the data. Input-shape validation is
+the concrete transformer's responsibility, not the base's.
+
 ### Config Profile / Logger Profile
 A named file selecting a set of settings. Config profiles: `python_repo`,
 `python_personal`, `python_local`. Logger profiles: the `logger_*` files (`.toml`).
+
+Among the config profiles, `python_repo` is the **canonical base**: it is tracked
+in git, is the default when no profile is selected, and always loads first.
+`python_personal` and `python_local` are **optional partial overlays** layered over
+that base — the keys they set win, and any key they omit falls back to the base.
+`python_personal` is git-ignored (per-developer); selecting it is opt-in. A profile
+is chosen explicitly via the **Env Selector**; selecting one whose file is absent is
+an error, but a present-but-partial overlay is not.

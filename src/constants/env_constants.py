@@ -19,6 +19,6 @@ ENV_PROJECT_ROOT = "ENV_PROJECT_ROOT"
 ENV_HEALTHCHECK_PING_URL = "HEALTHCHECK_PING_URL"
 
 # Canonical default values (fallback if not present in the environment or .env)
-DEFAULT_CONFIG = "python_personal"
+DEFAULT_CONFIG = "python_repo"
 DEFAULT_LOGGER = "logger_file_limit_console"
 DEFAULT_RUNNING_UNIT_TESTS = "False"

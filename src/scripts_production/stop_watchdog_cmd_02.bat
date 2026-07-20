@@ -7,16 +7,26 @@ REM ==========================================
 set TASK_NAME=watchdog_cmd_02
 REM ==========================================
 
+set SCRIPT_DIR=%~dp0
+set PID_FILE=%SCRIPT_DIR%heartbeats_%TASK_NAME%\watchdog.pid
+
 echo.
 echo ==========================================
 echo   Watchdog Restart Tool (%TASK_NAME%)
 echo ==========================================
 echo.
 
-set /p PID=Enter watchdog PID:
+set PID=
+if exist "%PID_FILE%" (
+    set /p PID=<"%PID_FILE%"
+    echo Found watchdog PID %PID% in "%PID_FILE%".
+) else (
+    echo PID file not found: "%PID_FILE%"
+    set /p PID=Enter watchdog PID:
+)
 
 if "%PID%"=="" (
-    echo No PID entered. Exiting.
+    echo No PID available. Exiting.
     goto :eof
 )
 

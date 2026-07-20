@@ -23,9 +23,61 @@
       "items": {
         "$ref": "#/definitions/WorkerData"
       }
+    },
+    "supervision": {
+      "description": "Optional supervision timing tunables (see ADR 0007). Omit the whole table to keep today's defaults.",
+      "default": {},
+      "$ref": "#/definitions/SupervisionTimingData"
     }
   },
   "definitions": {
+    "SupervisionTimingData": {
+      "type": "object",
+      "description": "Mirrors the SupervisionTimingData NamedTuple. All fields optional; each defaults to the watchdog.py constant it replaced.",
+      "additionalProperties": false,
+      "properties": {
+        "check_interval": {
+          "type": "number",
+          "description": "Seconds between successive worker health-check passes. Defaults to 30.0.",
+          "default": 30.0
+        },
+        "startup_grace_period": {
+          "type": "number",
+          "description": "Seconds to wait after starting all workers before the first health-check pass. Defaults to 5.0.",
+          "default": 5.0
+        },
+        "stop_grace_period": {
+          "type": "number",
+          "description": "Seconds to wait for a worker to exit after a graceful-stop signal before a hard kill. Defaults to 5.0.",
+          "default": 5.0
+        },
+        "watchdog_healthcheck_interval": {
+          "type": "number",
+          "description": "Seconds between the watchdog's own healthchecks.io pings. Defaults to 30.0.",
+          "default": 30.0
+        },
+        "backoff_base": {
+          "type": "number",
+          "description": "Base delay in seconds for the per-worker crash-loop restart backoff. Defaults to 2.0.",
+          "default": 2.0
+        },
+        "backoff_cap": {
+          "type": "number",
+          "description": "Maximum delay in seconds the crash-loop restart backoff can reach. Defaults to 300.0.",
+          "default": 300.0
+        },
+        "crash_loop_count": {
+          "type": "integer",
+          "description": "Minimum number of restarts within crash_loop_window that counts as a crash loop. Defaults to 5.",
+          "default": 5
+        },
+        "crash_loop_window": {
+          "type": "number",
+          "description": "Trailing window in seconds used to detect a crash loop. Defaults to 300.0.",
+          "default": 300.0
+        }
+      }
+    },
     "WorkerData": {
       "type": "object",
       "description": "Mirrors the WorkerData NamedTuple. One [[workers]] array-of-tables entry.",
