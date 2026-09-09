@@ -6,6 +6,7 @@
 - [Installation](#installation)
     - [Prerequisites](#prerequisites)
     - [Repository Set Up](#repository-set-up)
+    - [Worktree Set Up](#worktree-set-up)
     - [Configuration](#configuration)
 - [Files and Folders Structure](#files-and-folders-structure)
 - [Code Quality](#code-quality)
@@ -121,6 +122,69 @@ The `make create-venv` command automatically sets up repository files and create
 
 > **Note:** `make all` stops at the first failing check by design — that is the gate every push and CI run must pass.
 > There is no `-i` ("ignore errors") flag to run around it; if a step fails, fix it before continuing.
+
+<a name="worktree-set-up"></a>
+## Worktree Set Up
+[ToC](#table-of-content)
+
+[Git worktrees](https://git-scm.com/docs/git-worktree) check another branch out into its own directory next to the
+main checkout, so several branches can be worked on in parallel without switching branches or duplicating a full
+clone. The files excluded from version control (`.env`, `configurations/python_personal.toml`, `make_config.mk`,
+the playground notebooks, `.venv`) are not part of the git history, so a fresh worktree does not have them.
+
+`make setup-worktree` fills that gap. It is the worktree counterpart of `make create-venv`: the files that carry
+**personal content** are copied from the main checkout, everything else is created from templates exactly as in a
+fresh clone.
+
+```bash
+# 1. Create the worktree (run from the main checkout)
+git worktree add ../python-template-my-feature -b my-feature
+
+# 2. Set everything up (run from INSIDE the new worktree)
+cd ../python-template-my-feature
+make setup-worktree
+
+# 3. Activate virtual environment
+.venv\Scripts\activate    # Windows
+source .venv/bin/activate # Linux/macOS
+
+# 4. Verify
+make all
+```
+
+Seeded from the main checkout, each one skipped if it already exists in the worktree:
+
+| File | Why it is copied rather than generated |
+|---|---|
+| `.env` | Holds real credentials and paths; a blank copy of `.env.example` would be useless |
+| `configurations/python_personal.toml` | Your personal overlay; the generated one is only comments |
+| `.idea/*` except `workspace.xml` | PyCharm project settings are `$PROJECT_DIR$`-relative and therefore portable; `workspace.xml` is machine-local window and run state |
+
+Created from templates by the `create-venv` setup that `setup-worktree` runs afterwards: `make_config.mk`,
+`notebooks/raw/playground_notebook.py`, `marimo/raw/playground_marimo.py`, and the worktree's own `.venv`.
+`make_config.mk` deliberately comes from the template rather than from the main checkout — it points at the file
+you were last working on there, which is not the file you are about to work on here.
+
+**No hard-coded path to the main checkout.** It is derived from git itself
+(`git rev-parse --git-common-dir`), so it works whatever the repository and worktree directories are named and
+wherever they live. This follows the same principle as
+[ADR 0002](docs/adr/0002-repo-root-path-anchoring.md): anchor to a real marker, never to a CWD-relative guess or a
+hard-coded candidate path. To seed from a different checkout on purpose, pass it explicitly:
+
+```bash
+make setup-worktree MAIN_REPO=../some-other-checkout
+```
+
+`make setup-worktree` stops with an error if it is run outside a git repository, or from the main checkout — use
+`make create-venv` there. If the main checkout has no `.env` or no `python_personal.toml`, it warns and carries on,
+creating template ones, and repeats the warning in the closing banner so it is not lost in the `uv sync` output.
+
+**Git hooks need no re-install.** `make install-hooks` sets `core.hooksPath` to the *relative* path
+`scripts/hooks`, which git resolves inside whichever worktree the hook runs in, and the setting lives in the shared
+repository config. Install the hooks once in the main checkout and every worktree has them.
+
+> **Note:** removing a worktree needs `git worktree remove --force ../python-template-my-feature`, because the
+> untracked `.venv` inside it makes git refuse a plain `remove`. Check what is untracked before forcing.
 
 <a name="configuration"></a>
 ## Configuration
@@ -891,6 +955,10 @@ Repository Set Up & Virtual Environment:
  - make remove-lib library=<library>: Removes a library from the virtual environment.
  - make remove-lib-win library=<library>: Removes a library from the windows dependency group.
 
+Git Worktree Set Up:
+ - make setup-worktree: Sets up a git worktree - seeds .env, configurations/python_personal.toml and the
+   PyCharm .idea settings from the main checkout, then runs the create-venv setup. Run it from inside the worktree.
+
 Dependency Locking:
  - make lock: Updates uv.lock from pyproject.toml (uv lock).
 
@@ -939,7 +1007,7 @@ File-Specific Quality:
 @HAIL TO YOU, HERO!!!
 @CONGRATULATIONS TO YOU RUNNING YOUR FIRST MAKE COMMAND!!
 
-### create-venv
+### create-venv-no-clear
 @CREATES VIRTUAL ENVIRONMENT WITH AUTOMATIC REPOSITORY SETUP
 Automatically sets up repository files and creates virtual environment (detects Windows vs. Linux/macOS itself):
  - Copies make_config_template.mk to make_config.mk
@@ -949,6 +1017,30 @@ Automatically sets up repository files and creates virtual environment (detects 
  - Copies marimo/template/template_notebook.py to marimo/raw/playground_marimo.py
  - Installs Python 3.13
  - Creates venv .venv (dev + windows dependency groups)
+@
+
+### setup-worktree
+@SETS UP A GIT WORKTREE
+Sets up the files excluded from version control inside a git worktree, reusing them from the main
+checkout instead of creating blank ones. Run it from inside the worktree.
+
+The main checkout is derived from git (git rev-parse --git-common-dir), so no directory name or
+layout is hard-coded. Override it only to seed from a different checkout:
+ - make setup-worktree MAIN_REPO=../other-checkout
+
+Seeded from the main checkout (skipped if the file already exists here):
+ - .env
+ - configurations/python_personal.toml
+ - .idea settings, except the machine-local workspace.xml
+
+Created from templates by the create-venv setup that follows:
+ - make_config.mk, the playground notebook and the playground marimo notebook, and the .venv
+
+Git hooks need no re-install: install-hooks sets core.hooksPath to the relative path scripts/hooks,
+which git resolves inside whichever worktree the hook runs in.
+
+Fails if run outside a git repository, or from the main checkout (use make create-venv there).
+ - Usage: make setup-worktree
 @
 
 ### install-hooks
@@ -970,7 +1062,7 @@ Installs two Git hooks to improve workflow and security (detects Windows vs. Lin
 Installation location:
  - Windows: Uses scripts/install-hooks.ps1
  - Linux/macOS: Uses scripts/install-hooks.sh
- - Hooks installed to: .git/hooks/
+ - Sets core.hooksPath to the tracked scripts/hooks directory (resolved per worktree)
 
 Bypassing hooks (not recommended):
  - Skip pre-commit: git commit --no-verify

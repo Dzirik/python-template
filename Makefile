@@ -3,7 +3,8 @@
 # NEED TO REPLACE IT - FOR EXAMPLE NOTEPAD #############################################################################
 ########################################################################################################################
 
-.PHONY: help hello clear-console install-hooks create-venv check-venv \
+.PHONY: help hello clear-console install-hooks create-venv create-venv-no-clear check-venv \
+	setup-worktree worktree-prep \
 	add-lib add-lib-win remove-lib remove-lib-win lock sync \
 	mypy-no-clear mypy format-check-no-clear format-check format-fix-no-clear format-fix \
 	lint-check-no-clear lint-check lint-fix-no-clear lint-fix \
@@ -47,8 +48,8 @@ else
 	@bash scripts/install-hooks.sh
 endif
 
-create-venv: clear-console
-	@python ./src/utils/make_print_documentation.py create-venv
+create-venv-no-clear:
+	@python ./src/utils/make_print_documentation.py create-venv-no-clear
 	@echo "Setting up repository files..."
 	@test -f make_config.mk && echo "make_config.mk already exists" || cp make_config_template.mk make_config.mk
 	@test -f ./configurations/python_personal.toml && echo "python_personal.toml already exists" || python -c "from pathlib import Path; Path('configurations/python_personal.toml').write_text('# Personal config overlay - deep-merged over configurations/python_repo.toml (the tracked base).\n# Set only the keys you want to override; anything left commented out falls back to\n# python_repo.toml. Activate this profile by setting ENV_CONFIG=python_personal in your .env.\n#\n# name is set from the ENV_CONFIG selection, not read from this file - no need to set it here.\n\n# [path]\n# data = \"E:/DATA\"\n\n# [param_ntb_execution]\n# output_folder = \"reports\"\n')"
@@ -69,6 +70,8 @@ ifeq ($(OS),Windows_NT)
 else
 	@echo "Next step: Activate the environment with: source .venv/bin/activate"
 endif
+
+create-venv: clear-console create-venv-no-clear
 
 check-venv:
 ifdef VIRTUAL_ENV
@@ -131,6 +134,92 @@ sync: clear-console
 	uv sync
 	@echo ""
 	@echo "✅ Dependencies synced successfully!"
+
+# WORKTREE SETUP -------------------------------------------------------------------------------------------------------
+
+# Path to the main checkout the worktree seeds its untracked files from. Left empty on purpose:
+# it is derived from git (see worktree-prep) so no directory name or layout is hard-coded.
+# Override only to seed from a different checkout: make setup-worktree MAIN_REPO=../other-checkout
+MAIN_REPO ?=
+
+worktree-prep:
+	@python ./src/utils/make_print_documentation.py setup-worktree
+	@set -e; \
+	if ! git rev-parse --git-dir >/dev/null 2>&1; then \
+		echo "ERROR: Not a git repository - run 'make setup-worktree' from inside a git worktree."; \
+		exit 1; \
+	fi; \
+	main_repo="$(MAIN_REPO)"; \
+	if [ -z "$$main_repo" ]; then \
+		if [ "$$(git rev-parse --git-common-dir)" = "$$(git rev-parse --git-dir)" ]; then \
+			echo "ERROR: You are in the main checkout, not a git worktree."; \
+			echo "       Run 'make create-venv' instead, or pass MAIN_REPO=<path> to seed from"; \
+			echo "       another checkout on purpose."; \
+			exit 1; \
+		fi; \
+		main_repo="$$(git rev-parse --path-format=absolute --git-common-dir | sed 's|/[.]git/*$$||')"; \
+	fi; \
+	if [ ! -d "$$main_repo" ]; then \
+		echo "ERROR: Main checkout not found: $$main_repo"; \
+			exit 1; \
+	fi; \
+	echo "Main checkout: $$main_repo"; \
+	echo ""; \
+	echo "Seeding the files excluded from version control:"; \
+	for f in .env configurations/python_personal.toml; do \
+		if [ -f "$$f" ]; then \
+			echo "  = $$f already exists - keeping it"; \
+		elif [ -f "$$main_repo/$$f" ]; then \
+			mkdir -p "$$(dirname "$$f")"; \
+			cp "$$main_repo/$$f" "$$f"; \
+			echo "  + $$f copied from the main checkout"; \
+		else \
+			echo "  ! $$f not found in the main checkout - a template one will be created"; \
+		fi; \
+	done; \
+	if [ -d "$$main_repo/.idea" ]; then \
+		( cd "$$main_repo" && find .idea -type f \
+			-not -name workspace.xml -not -name jsonSchemas.xml \
+			-not -path ".idea/shelf/*" -not -path ".idea/httpRequests/*" \
+			-not -path ".idea/queries/*" -not -path ".idea/dataSources*" ) \
+		| while IFS= read -r f; do \
+			if [ -f "$$f" ]; then \
+				echo "  = $$f already exists - keeping it"; \
+			else \
+				mkdir -p "$$(dirname "$$f")"; \
+				cp "$$main_repo/$$f" "$$f"; \
+				echo "  + $$f seeded from the main checkout"; \
+			fi; \
+		done; \
+	fi
+
+setup-worktree: clear-console worktree-prep create-venv-no-clear
+	@main_repo="$(MAIN_REPO)"; \
+	if [ -z "$$main_repo" ]; then \
+		main_repo="$$(git rev-parse --path-format=absolute --git-common-dir | sed 's|/[.]git/*$$||')"; \
+	fi; \
+	echo ""; \
+	echo "=================================================================================================="; \
+	echo " WORKTREE READY"; \
+	echo "=================================================================================================="; \
+	echo " Worktree:      $$(git rev-parse --path-format=absolute --show-toplevel)"; \
+	echo " Main checkout: $$main_repo"; \
+	if [ ! -f "$$main_repo/.env" ]; then \
+		echo " WARNING: .env was not found in the main checkout - a blank one was created from"; \
+		echo "          .env.example. Fill it in before running anything that needs credentials."; \
+	fi; \
+	if [ ! -f "$$main_repo/configurations/python_personal.toml" ]; then \
+		echo " WARNING: configurations/python_personal.toml was not found in the main checkout -"; \
+		echo "          a commented template overlay was created instead."; \
+	fi; \
+	echo " Next steps:"
+ifeq ($(OS),Windows_NT)
+	@echo "   1. .venv\Scripts\activate"
+else
+	@echo "   1. source .venv/bin/activate"
+endif
+	@echo "   2. make all"
+	@echo "=================================================================================================="
 
 # SOURCE CODE QUALITY --------------------------------------------------------------------------------------------------
 
