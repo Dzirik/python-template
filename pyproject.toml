@@ -35,7 +35,7 @@ dependencies = [
     "jupyter-console>=6.6.3",
     "jupyter_server>=2.20.0", # Notebook 7.x requires jupyter_server 2.x
     "notebook>=7.6.0", # Notebook 7.5.2+ includes JupyterLab 4.5.2 with anchor fix (PR #18208)
-    "jupyterlab>=4.6.1", # Required by Notebook 7; ≥4.5.2 fixes anchor navigation (PR #18208)
+    "jupyterlab>=4.6.2", # Required by Notebook 7; ≥4.5.2 fixes anchor navigation (PR #18208); ≥4.6.2 clears PYSEC-2026-3670..3672 / GHSA-h5v5-8746-g7mm / GHSA-whvh-wf3x-g77j
     "nbclient>=0.11.0",
     "nbconvert>=7.17.1",
     "nbformat>=5.10.4",
@@ -50,10 +50,11 @@ dependencies = [
     "marimo[recommended]>=0.23.14",
     "plotly>=6.9.0",
     "termcolor>=3.3.0",
-    "aiohttp>=3.14.1",
+    "aiohttp>=3.14.3", # >=3.14.3 clears PYSEC-2026-3545/3546/3547
     "requests>=2.34.2",
     "urllib3>=2.7.0",
     "idna>=3.18",
+    "pymdown-extensions>=11.0.1", # transitive via marimo; pinned here to clear PYSEC-2026-3609 / PYSEC-2026-3654
 ]
 
 [dependency-groups]
