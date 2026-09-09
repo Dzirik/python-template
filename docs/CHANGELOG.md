@@ -1,5 +1,33 @@
 # Change Log
 
+## Week 07.-13.09.2026
+
+- Added `make setup-worktree`, the git-worktree counterpart of `make create-venv`: run from inside a
+  worktree, it seeds the files excluded from version control that carry *personal* content — `.env`,
+  `configurations/python_personal.toml`, and the portable PyCharm `.idea` settings (everything except
+  the machine-local `workspace.xml`) — from the main checkout, skipping any that already exist, then
+  runs the normal `create-venv` setup for the rest (`make_config.mk`, both playground notebooks, and
+  the worktree's own `.venv`), which come from templates on purpose. `make_config.mk` is deliberately
+  *not* inherited from the main checkout: it points at the file last worked on there, not the one
+  about to be worked on here.
+- The main checkout is derived from git (`git rev-parse --git-common-dir`) rather than a hard-coded
+  sibling path, following the same anchoring principle as [ADR 0002](adr/0002-repo-root-path-anchoring.md);
+  `make setup-worktree MAIN_REPO=<path>` overrides it to seed from a different checkout. The target
+  stops with an error outside a git repository or when run from the main checkout (use `make create-venv`
+  there), and warns-and-continues when the main checkout has no `.env`/`python_personal.toml`, repeating
+  the warning in the closing banner so it is not lost in the `uv sync` output.
+- Split `create-venv` into `create-venv-no-clear` + `create-venv: clear-console create-venv-no-clear`,
+  matching the `-no-clear` convention already used by every quality target, so `setup-worktree` can
+  compose it as an ordered prerequisite (like `all:` does) without a recursive `make` call that would
+  clear the console mid-run and wipe the warnings just printed. The README make-documentation section
+  was renamed `### create-venv` → `### create-venv-no-clear` to follow the section-named-after-the-target
+  convention.
+- Documented the above in a new README *Worktree Set Up* chapter (with ToC entry) and a
+  `### setup-worktree` make-documentation section, and noted that git hooks need **no** re-install in a
+  worktree: `install-hooks` sets `core.hooksPath` to the *relative* `scripts/hooks`, which git resolves
+  inside whichever worktree the hook runs in (verified by a blocked commit from a worktree). Corrected
+  the `### install-hooks` section, which wrongly claimed the hooks are installed into `.git/hooks/`.
+
 ## Week 13.-19.07.2026
 
 - Consolidated colored console echo into the `Logger`: the five level methods

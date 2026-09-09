@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.19.1
+#       jupytext_version: 1.19.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -190,7 +190,7 @@ envs.set_config(PYTHON_CONFIG_NAME)
 from src.data.attributes import A
 
 ATTR_OPEN = "OPEN"
-ATTR_HIGH = "HIGHT"
+ATTR_HIGH = "HIGH"
 ATTR_LOW = "LOW"
 ATTR_CLOSE = "CLOSE"
 
