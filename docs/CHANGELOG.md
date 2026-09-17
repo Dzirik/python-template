@@ -1,5 +1,29 @@
 # Change Log
 
+## Week 14.-20.09.2026
+
+- Removed the superseded HOCON config system that survived the TOML migration because it had been
+  *copied* rather than moved: `src/utils/config.py`, `config_data.py`, `base_config.py` and
+  `meta_class.py` (with `tests/tests_utils/test_meta_class.py`), replaced long ago by
+  `application_config.py`, `application_config_data.py`, `base_component_config.py` and
+  `monitored_base.py`. Nothing imported them, but they still imported `pyhocon`, which is no longer a
+  declared dependency.
+- Removed the ten tracked `.conf` profiles (`configurations/logger_*.conf`, `python_repo.conf`,
+  `python_local.conf`, `python_personal.conf`, `watchdog_cmd_0*.conf`), superseded by their `.toml`
+  counterparts under `configurations/`, `configurations/loggers/` and `configurations/watchdogs/`, so
+  the claim that `.conf` is retired from the repository entirely is now true. Dropped the matching
+  `*.conf text eol=lf` rule from `.gitattributes`.
+- Removed the top-level `docs/` copies left behind by moves into subfolders —
+  `CHECKER_SCHEDULER_SET_UP.md` and `PERSISTENT_RUN.md` (older, still describing HOCON, `wmic` and
+  `winotify`; the current versions live in `docs/tutorials/`), and the byte-identical
+  `JUPYTER_ECOSYSTEM.md`, `2022-01-21_cygwin_make_set_up.mp4`, `attributes_documentation.html` and
+  `visualisation_documentation.html` — plus both `TESTING_CHECKLIST.md` copies, which this log and the
+  README already recorded as deleted. Restored the link to `docs/AUDIT.md` in
+  `docs/tutorials/PERSISTENT_RUN.md`, lost when only the older copy carried it.
+- Corrected stale `.conf` mentions in docstrings (`application_config.py`, `envs.py`,
+  `test_cwd_independence.py`), including `ApplicationConfig` naming `python_local.conf` as its default
+  where the actual default is the tracked `python_repo` base profile.
+
 ## Week 07.-13.09.2026
 
 - Added `make setup-worktree`, the git-worktree counterpart of `make create-venv`: run from inside a
