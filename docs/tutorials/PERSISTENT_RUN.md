@@ -8,6 +8,9 @@ required after the initial setup.
 > contract, the crash-loop backoff policy, and the atomic single-instance lock described
 > in this guide, see
 > [ADR 0007](../adr/0007-watchdog-supervision-semantics.md).
+>
+> **Technical audit:** For a detailed production-readiness assessment of the supervision
+> system, see [`docs/AUDIT.md`](../AUDIT.md).
 
 ---
 

@@ -122,7 +122,7 @@ def test_watchdog_config_resolves_identically_regardless_of_cwd(
 
     Safe to test in-process (unlike ApplicationConfig/Logger above): WatchdogConfig is a plain BaseComponentConfig
     subclass, not a Singleton - src/configurations/watchdog_config.py and src/utils/base_component_config.py show
-    every construction independently re-parses the .conf file via load_config, which resolves the file path through
+    every construction independently re-parses the .toml file via load_config, which resolves the file path through
     ProjectPaths rather than the CWD, so there is no cross-test caching to work around.
     """
     baseline = WatchdogConfig("watchdog_cmd_01").get_data()
