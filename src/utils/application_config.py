@@ -25,7 +25,7 @@ def _resolve_path(value: str, root: FilePath) -> str:
     Resolves a config-supplied path value to an absolute path.
 
     Already-absolute values (e.g. a personal override like "E:/DATA") are returned unchanged; root-relative
-    values (the bare, repo-relative values shipped in the tracked ``.conf`` files) are resolved against root.
+    values (the bare, repo-relative values shipped in the tracked ``.toml`` profiles) are resolved against root.
     :param value: str. Path value as read from a config file, either absolute or root-relative.
     :param root: FilePath. Project root to resolve root-relative values against.
     :return: str. Absolute path.
@@ -40,7 +40,7 @@ class ApplicationConfig(metaclass=Singleton):
 
     Singleton class.
 
-    Takes settings from environmental variables or uses default "python_local.conf".
+    Takes settings from environmental variables or uses default "python_repo" profile.
 
     Methods should the same as in src/utils/base_component_config.py
 

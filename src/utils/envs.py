@@ -52,7 +52,7 @@ class Envs:
         ApplicationConfig, NotValidOperation and ExceptionExecutioner are imported lazily inside this method
         rather than at module level, because ApplicationConfig itself imports Envs - a module-level import
         here would create an import cycle.
-        :param value: str. Value to be set without .conf.
+        :param value: str. Value to be set without .toml.
         """
         from src.exceptions.development_exception import NotValidOperation  # noqa: PLC0415
         from src.exceptions.exception_executioner import ExceptionExecutioner  # noqa: PLC0415
@@ -86,7 +86,7 @@ class Envs:
         set_config's guard against the same silent-no-op ordering trap. Logger is imported lazily inside this
         method for the same reason ApplicationConfig is imported lazily in set_config: Logger imports Envs at
         module level, so a module-level import here would create an import cycle.
-        :param value: str. Value to be set without .conf.
+        :param value: str. Value to be set without .toml.
         """
         from src.exceptions.development_exception import NotValidOperation  # noqa: PLC0415
         from src.exceptions.exception_executioner import ExceptionExecutioner  # noqa: PLC0415
