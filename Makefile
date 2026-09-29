@@ -10,7 +10,7 @@
 	lint-check-no-clear lint-check lint-fix-no-clear lint-fix \
 	docstring-check-no-clear docstring-check docstring-fix-no-clear docstring-fix \
 	test-detailed-no-clear test-detailed test-no-clear test \
-	security-check-no-clear security-check all all-secure \
+	security-check-no-clear security-check all all-sec \
 	mypy-f format-check-f format-fix-f lint-check-f lint-fix-f \
 	docstring-check-f docstring-fix-f test-f-detailed test-f all-f \
 	jupyter marimo marimo-app marimo-new marimo-convert \
@@ -304,7 +304,7 @@ security-check: clear-console security-check-no-clear
 
 all: clear-console mypy-no-clear format-check-no-clear lint-check-no-clear docstring-check-no-clear test-no-clear
 
-all-secure: clear-console mypy-no-clear format-check-no-clear lint-check-no-clear docstring-check-no-clear test-no-clear security-check-no-clear
+all-sec: clear-console mypy-no-clear format-check-no-clear lint-check-no-clear docstring-check-no-clear test-no-clear security-check-no-clear
 
 # ONE FILE QUALITY -----------------------------------------------------------------------------------------------------
 

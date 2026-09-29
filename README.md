@@ -574,7 +574,7 @@ The historical, pre-uv/pre-ADR-0006 end-to-end verification checklist that used 
 `docs/meta/TESTING_CHECKLIST.md` has been removed — it was never a getting-started resource, and its content
 (written for a "Minimal Template" on an older Python line) no longer matched this repository. For getting a
 fresh clone running, use [Installation](#installation) above; for the day-to-day quality gate, use `make all` /
-`make all-secure`.
+`make all-sec`.
 
 ### Coverage
 [ToC](#table-of-content)
@@ -654,11 +654,11 @@ See [pip-audit documentation](https://pypi.org/project/pip-audit/) for more info
 make security-check
 
 # Run all quality checks including security
-make all-secure
+make all-sec
 ```
 
 **In CI/CD:**
-- Security checks run automatically on every PR via `make all-secure`
+- Security checks run automatically on every PR via `make all-sec`
 - Prevents vulnerable code from being merged
 
 <a name="pre-push-hooks"></a>
@@ -772,7 +772,7 @@ This repository uses **three layers of protection**:
    - Can be bypassed with `git push --no-verify`
 
 3. **🔒 PR Workflow** (Comprehensive Security Check)
-   - Runs `make all-secure` on ALL files
+   - Runs `make all-sec` on ALL files
    - Includes both Bandit and pip-audit
    - Scans entire codebase and all dependencies
    - **Cannot be bypassed** - required for merge
@@ -799,7 +799,7 @@ This repository includes automated quality checks using **GitHub Actions** that 
 
 ### What It Does
 
-The CI workflow (`.github/workflows/ci.yml`) automatically runs `make all-secure` which includes:
+The CI workflow (`.github/workflows/ci.yml`) automatically runs `make all-sec` which includes:
 - ✅ **MyPy** - Type checking with strict mode
 - ✅ **Ruff Format** - Code formatting validation
 - ✅ **Ruff Lint** - Code quality checks (excluding docstring rules)
@@ -848,7 +848,7 @@ git push
 **Running checks locally before pushing:**
 ```bash
 # Run all checks with security (same as CI)
-make all-secure
+make all-sec
 
 # Or run all checks without security (faster)
 make all
@@ -868,7 +868,7 @@ The workflow is configured in `.github/workflows/ci.yml`:
 - **Triggers:** Pull requests and pushes to `main`/`develop`
 - **Matrix:** `os: [ubuntu-latest, windows-latest]` × `python-version: ["3.13", "3.14"]` (4 jobs)
 - **Package manager:** `astral-sh/setup-uv` installs UV and the matrix Python interpreter, with caching enabled
-- **Main command:** `make all-secure` (includes security checks); `make` itself is installed via `choco install make`
+- **Main command:** `make all-sec` (includes security checks); `make` itself is installed via `choco install make`
   on the Windows runners
 - **Artifacts:** Coverage reports (uploaded if available)
 
@@ -906,7 +906,7 @@ Common make commands for repository management. Run `make help` for full list.
 - `make test-detailed` - Run pytest tests (detailed output showing each test)
 - `make security-check` - Run security checks (bandit + pip-audit)
 - `make all` - Run all quality checks (mypy + format-check + lint-check + docstring-check + test); stops at the first failure
-- `make all-secure` - Run all quality checks + security (same as CI/CD pipeline); stops at the first failure
+- `make all-sec` - Run all quality checks + security (same as CI/CD pipeline); stops at the first failure
 - `make cover` - Generate coverage report (HTML in `coverage/` folder)
 
 **Jupyter Notebook:**
@@ -980,7 +980,7 @@ Code Quality:
  - make test-detailed: Pytest testing (detailed output showing each test).
  - make security-check: Security checks (bandit + pip-audit).
  - make all: Runs mypy + format-check + lint-check + docstring-check + test.
- - make all-secure: Runs all + security-check (same as CI/CD pipeline).
+ - make all-sec: Runs all + security-check (same as CI/CD pipeline).
 
 Jupyter Notebook:
  - make jupyter: Starts Jupyter Notebook server.
@@ -1230,7 +1230,7 @@ Clears console and executes security scanning tools:
  - pip-audit: Checks dependencies for known security vulnerabilities (CVEs)
 
 Recommended to run before creating pull requests.
-Use 'make all-secure' to run all quality checks including security.
+Use 'make all-sec' to run all quality checks including security.
 @
 
 ### mypy-f
@@ -1289,7 +1289,7 @@ Clears console before starting and runs all checks without clearing between step
 Stops at first failure to quickly identify issues.
 @
 
-### all-secure
+### all-sec
 @RUNS ALL QUALITY CHECKS + SECURITY CHECKS
 Executes all quality checks plus security scanning: mypy + format-check + lint-check + docstring-check + test + security-check.
 This is the same command used in CI/CD pipeline to ensure code quality and security before merging.

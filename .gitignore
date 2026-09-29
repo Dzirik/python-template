@@ -47,6 +47,10 @@
 # /src/data/attributes.xlsm
 /src/data/~$attributes.xlsm
 
+# Claude Tap traces (machine-wide tool, writes ./.traces/ relative to wherever it is launched).
+# Traces contain copies of source code the agent read — never commit them. Unanchored on purpose.
+.traces/
+
 # pycharm
 # Ignore the whole PyCharm project directory except the shared JSON Schema mapping, which is
 # version-controlled so every contributor gets .toml validation/autocomplete with no per-user setup

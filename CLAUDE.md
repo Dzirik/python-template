@@ -23,7 +23,7 @@ Quality checks (each has a `-no-clear` variant that skips the console clear — 
 - `make test` / `make test-detailed` — pytest (quiet / verbose)
 - `make security-check` — bandit + pip-audit
 - `make all` — mypy + format + lint + docstring + test (what to run before pushing); stops at the first failure, no `-i`/ignore-errors flag
-- `make all-secure` — `all` plus security; **this is exactly what CI runs** (4-job matrix: `{ubuntu-latest, windows-latest} × {Python 3.13, 3.14}`, via `astral-sh/setup-uv`)
+- `make all-sec` — `all` plus security; **this is exactly what CI runs** (4-job matrix: `{ubuntu-latest, windows-latest} × {Python 3.13, 3.14}`, via `astral-sh/setup-uv`)
 - `make cover` — HTML coverage report into `coverage/`
 
 ### Single-file / single-test workflow
@@ -61,7 +61,7 @@ Custom exceptions subclass `CustomException` (grouped in `src/exceptions/data_ex
 
 ## Code style (STRICT — match existing files exactly)
 
-`make all` gates every push and CI runs `make all-secure`, so new code must pass mypy `--strict`, ruff format, ruff lint, and the ruff docstring rules. Beyond passing the tools, **mirror the house style already present in every `src/` file** — new code should be indistinguishable from existing code.
+`make all` gates every push and CI runs `make all-sec`, so new code must pass mypy `--strict`, ruff format, ruff lint, and the ruff docstring rules. Beyond passing the tools, **mirror the house style already present in every `src/` file** — new code should be indistinguishable from existing code.
 
 ### Typing (mypy `--strict`)
 

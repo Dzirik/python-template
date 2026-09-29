@@ -532,7 +532,7 @@ make security-check
 
 **🔧 How to do it:**
 ```bash
-make all-secure -i
+make all-sec -i
 ```
 
 **What this does:**
@@ -1158,7 +1158,7 @@ cat reports/cover_log.csv
 **🔧 How to do it:**
 ```bash
 # Run the most comprehensive check
-make all-secure -i
+make all-sec -i
 ```
 
 **What this does:**
@@ -1379,7 +1379,7 @@ Document any issues found during testing:
 
 The repository is considered **fully tested and production-ready** when:
 
-1. ✅ All quality checks pass (`make all-secure -i`)
+1. ✅ All quality checks pass (`make all-sec -i`)
 2. ✅ All tests pass with >= 80% coverage
 3. ✅ Security checks pass (no vulnerabilities)
 4. ✅ Git hooks installed and working correctly
@@ -1420,7 +1420,7 @@ cd your-repo
 make create-venv
 
 # Run all checks
-make all-secure -i
+make all-sec -i
 
 # Install Git hooks
 powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1
@@ -1439,7 +1439,7 @@ rm test.txt
 **✅ Checklist:**
 - [ ] Clone repository on Windows
 - [ ] Run `make create-venv`
-- [ ] Run `make all-secure -i`
+- [ ] Run `make all-sec -i`
 - [ ] All checks pass
 - [ ] Install hooks: `powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1`
 - [ ] Test pre-commit hook
@@ -1461,7 +1461,7 @@ cd your-repo
 make create-venv-linux
 
 # Run all checks
-make all-secure -i
+make all-sec -i
 
 # Install Git hooks
 bash scripts/install-hooks.sh
@@ -1480,7 +1480,7 @@ rm test.txt
 **✅ Checklist:**
 - [ ] Clone repository on Linux
 - [ ] Run `make create-venv-linux`
-- [ ] Run `make all-secure -i`
+- [ ] Run `make all-sec -i`
 - [ ] All checks pass
 - [ ] Install hooks: `bash scripts/install-hooks.sh`
 - [ ] Test pre-commit hook
@@ -1502,7 +1502,7 @@ cd your-repo
 make create-venv-linux
 
 # Run all checks
-make all-secure -i
+make all-sec -i
 
 # Install Git hooks
 bash scripts/install-hooks.sh
@@ -1521,7 +1521,7 @@ rm test.txt
 **✅ Checklist:**
 - [ ] Clone repository on macOS
 - [ ] Run `make create-venv-linux`
-- [ ] Run `make all-secure -i`
+- [ ] Run `make all-sec -i`
 - [ ] All checks pass
 - [ ] Install hooks: `bash scripts/install-hooks.sh`
 - [ ] Test pre-commit hook

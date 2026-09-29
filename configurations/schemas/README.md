@@ -27,7 +27,7 @@ Whenever a field is added, renamed, removed, or its type/optionality changes on
 `ApplicationConfigData`, `WatchdogConfigData`, or any nested `NamedTuple`
 (`Path`, `ParamNotebookExecution`, `WorkerData`), update the matching schema file by hand in
 the same change. A drift between the schema and the `NamedTuple` shape will not fail
-`make all-secure` (no Python is involved) - it will only silently stop being useful in the
+`make all-sec` (no Python is involved) - it will only silently stop being useful in the
 IDE, so treat "touched a config `NamedTuple`" as "touch its schema too".
 
 Note: the logger profiles (`configurations/loggers/*.toml`) are also `.toml`, so PyCharm

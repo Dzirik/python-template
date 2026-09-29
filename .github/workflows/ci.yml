@@ -48,7 +48,7 @@ jobs:
             uv run --no-project python -c "from pathlib import Path; p = Path('configurations/python_personal.toml'); p.write_text(p.read_text().replace('name = \"python_repo\"', 'name = \"python_personal\"'))"
           fi
 
-      - name: Run all quality checks with security (make all-secure)
+      - name: Run all quality checks with security (make all-sec)
         shell: bash
         run: |
-          make all-secure
+          make all-sec
