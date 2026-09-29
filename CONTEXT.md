@@ -6,6 +6,14 @@ uses a word, the conflict gets resolved here first.
 
 ## Terms
 
+### Agent Harness
+The local program that wraps the model and drives a coding session — Claude Code,
+in this repository's case. It is the party that actually builds and sends each
+request to the model provider: system prompt, tool schemas, injected context, and
+the message the developer typed. Distinct from a *test harness* (pytest
+scaffolding), which is always written hyphenated and qualified and is never called
+"the harness" here.
+
 ### Application Config
 The single, process-wide configuration for one execution of a project. There is
 exactly one. Which underlying config profile it reads is chosen ambiently via
@@ -35,6 +43,28 @@ which exposes one explicit accessor per variable. All *application* environment
 access goes through it; **operating-system builtins** (e.g. `SYSTEMROOT`) are not
 application config and may be read directly at their point of use.
 
+### Harness Capture
+A recorded copy of one complete exchange between the **Agent Harness** and the
+model provider — the full request and the full response, taken at the boundary as
+it passes. It captures everything crossing that boundary, including the
+developer's own message and the model's reply; it is not limited to the harness's
+own contribution. It has two layers: the **raw record**, which is authoritative and
+lossless, and the **render**, a human-readable view derived from the raw record that
+can always be regenerated from it. When the two disagree, the raw record is right.
+Not a **Logger** concern: it writes captures, not application
+logs, and has nothing to do with logger profiles. Known externally, and in the
+course this idea came from, as a "request logger".
+
+### Harness Session
+One continuous conversation of the **Agent Harness**, as the harness itself
+identifies it. Starting fresh (e.g. `/clear`) begins a new Harness Session;
+continuing a previous conversation resumes that one, and compacting does not end it.
+A subagent's traffic, and the harness's own auxiliary calls (safety classification,
+title and prompt suggestions), belong to the Harness Session they serve. The working
+directory is a descriptive label of a session, never its identity — two sessions in
+the same directory are two sessions. The **Harness Captures** of one session are
+ordered by arrival; that order, not wall-clock time, is the session's timeline.
+
 ### Logger
 The process-wide logging facility, selected by its own profile. A higher-level
 concern than config: it may depend on config, but nothing in the **Config
@@ -44,8 +74,8 @@ Loader** may depend on it.
 The single foundational service that computes the project root **once** (by
 walking up from the source file to a marker such as `pyproject.toml`/`.git`) and
 exposes the canonical input/output locations (`data`, `logs`, `reports`,
-`configurations`). All path resolution goes through it; nothing resolves paths
-against the current working directory. An environment override (via **Env
+`configurations`, `captures`). All path resolution goes through it; nothing
+resolves paths against the current working directory. An environment override (via **Env
 Selector**) can repoint the base directory for deployments outside the repo tree.
 Foundational: it must not depend on the **Logger**.
 

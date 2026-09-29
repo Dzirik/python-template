@@ -10,6 +10,16 @@ This project exists to **solve that infrastructure once and capture the accumula
 
 The template scaffolds **data-science projects for the author's team, across their entire lifecycle from data collection to production run**, at single-machine (pandas-scale) data sizes. Anything a data-science project reliably needs at any stage — and would be wasteful to rebuild each time — is in scope. General-purpose plumbing is in; the data-science problem itself is the user's to solve.
 
+**AI-assisted development is in scope as a cross-cutting concern.** The team builds these
+projects with coding agents, so the template also scaffolds *how the work is done*: the
+conventions an agent reads (`CLAUDE.md`, `CONTEXT.md`), the tooling that makes an agent's
+behaviour inspectable rather than mysterious (**Harness Capture** — see
+[ADR 0008](adr/0008-harness-capture.md)), and, over time, the shared agent workflow itself.
+This is deliberately *not* the same as AI engineering: it governs how the project gets
+built, and none of it ships inside the data-science product. LLM code *within* a project —
+agents, RAG, evals, prompt management — remains out of scope today (see Long-term
+direction).
+
 ## Inputs and outputs
 
 Describing a *project built with* the template:
@@ -30,7 +40,7 @@ A project moves through the template as a single arc, never re-tooling between s
 | **Building / feature engineering** | sklearn-style `BaseTransformer` (`fit`/`predict`/`fit_predict`/`inverse`), `MetaClass` monitoring, the datetime one-hot encoder as a worked example |
 | **Production run** | Process supervision (`watchdog`/`heartbeat`/`checker`), logging with timers and git-branch capture, healthchecks.io integration |
 
-Cross-cutting throughout: the Singleton config + logger, strict quality gates, and the Makefile-driven workflow. Config profiles moved from HOCON to TOML (parsed by the stdlib `tomllib`); see [ADR 0003](adr/0003-toml-config-profiles.md) for the rationale and [`docs/tutorials/CONF_TO_TOML.md`](tutorials/CONF_TO_TOML.md) for the migration walkthrough.
+Cross-cutting throughout: the Singleton config + logger, strict quality gates, the Makefile-driven workflow, and the AI-assisted-development layer (agent conventions and **Harness Capture**). Config profiles moved from HOCON to TOML (parsed by the stdlib `tomllib`); see [ADR 0003](adr/0003-toml-config-profiles.md) for the rationale and [`docs/tutorials/CONF_TO_TOML.md`](tutorials/CONF_TO_TOML.md) for the migration walkthrough.
 
 ## Primary users
 
@@ -60,11 +70,12 @@ The single measure of success: **you clone the template and immediately start re
 ## Guiding principles
 
 1. **Windows-first, cross-platform-capable.** Windows is a hard requirement, not a convenience. A change that breaks Windows is rejected even if it is cleaner on Linux. Linux/macOS are fully supported and CI runs on Ubuntu, but Windows comes first.
-2. **Quality is non-negotiable and fully automated.** `make all-secure` gates every push and is exactly what CI runs — strict `mypy`, enforced house style, tests, and security scans. There is no "I'll clean it up later."
+2. **Quality is non-negotiable and fully automated.** `make all-sec` gates every push and is exactly what CI runs — strict `mypy`, enforced house style, tests, and security scans. There is no "I'll clean it up later."
 3. **Reproducibility via `uv`.** Dependencies are pinned in `uv.lock`, never hand-edited, and only change through `make add-lib` / `make remove-lib`.
 4. **Convention over configuration; one house style.** New code must be indistinguishable from existing code. Shared state is centralized in Singletons; environment variables are touched only through `Envs`.
 5. **Teach by example.** Worked examples, `__main__` self-test blocks, and thorough documentation exist to onboard juniors — teaching is a first-class purpose.
 6. **One entry point: the Makefile.** Every workflow runs through `make`, so there is one interface to learn.
+7. **Agent-legible by design.** The repository is meant to be worked on with coding agents, so what an agent is told must be inspectable, not mysterious. Conventions live in files agents read, and the request an agent actually sends can be captured and read (**Harness Capture**). Understanding the context, cost, and tool bloat behind an agent turn is a skill the template teaches, exactly as it teaches typing and testing.
 
 ## Constraints
 
@@ -92,6 +103,7 @@ Deliberately out of scope today, but intended directions:
 
 - **Containerization / cloud-native deployment** may follow the current persistent-host model.
 - **Experiment tracking** (MLOps-style) is planned as a future addition to the build stage.
+- **AI engineering** — LLM code *inside* a project (agents, RAG, evals, prompt management, provider SDKs) — may follow the AI-assisted-development layer. It is a larger step than it looks: it would require revisiting the **Web / API serving** refusal below, would introduce `asyncio` and fast-moving provider SDKs, and would change the template's identity from a data-science scaffold to an AI-engineering one. Deliberately parked until that is decided on purpose.
 - **A feedback loop** — general improvements flowing back from projects into the template — may be adopted if project count grows (see Current stage).
 
 ## Current stage
@@ -104,3 +116,4 @@ The template is a **one-way seed**: a starting snapshot. Once a project is clone
 2. **Containerization trigger** — what would actually justify adding Docker / cloud-native support?
 3. **Experiment-tracking choice** — which tool (MLflow, W&B, DVC, homegrown) fits the team when we add it?
 4. **Two notebook ecosystems** — does maintaining both Jupyter and Marimo pay off, or will one win and the other be dropped?
+5. **The AI boundary** — where is the line between the template *supporting* AI-assisted development and the template *becoming* an AI-engineering scaffold? What would justify crossing it?
